@@ -248,25 +248,28 @@ export const getDocumentDownloadUrl = async (filePath: string): Promise<string |
 
 export const downloadDocument = async (filePath: string, fileName: string): Promise<void> => {
   try {
-    const downloadUrl = await getDocumentDownloadUrl(filePath);
-    
-    if (!downloadUrl) {
-      throw new Error('Gagal membuat URL download');
+    const { data, error } = await supabase.storage
+      .from('user-documents')
+      .createSignedUrl(filePath, 3600); // 1 hour expiry
+
+    if (error) {
+      console.error('Error creating signed URL:', error);
+      return;
     }
 
-    // Create download link
+    // Fetch file as blob
+    const response = await fetch(data.signedUrl);
+    const blob = await response.blob();
+
+    // Create download link with custom filename
     const link = document.createElement('a');
-    link.href = downloadUrl;
+    link.href = URL.createObjectURL(blob);
     link.download = fileName;
-    link.target = '_blank';
-    
-    // Trigger download
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
-
+    URL.revokeObjectURL(link.href);
   } catch (error) {
-    console.error('Error downloading document:', error);
-    throw error;
+    console.error('Error in downloadDocument:', error);
   }
 };

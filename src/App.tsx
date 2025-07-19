@@ -8,6 +8,8 @@ import { LoadingSpinner } from './components/ui/LoadingSpinner';
 
 // Admin Components
 import { ManajemenKaryawan } from './components/admin/ManajemenKaryawan';
+import { ProfilKaryawan } from './components/admin/ProfilKaryawan';
+import { ReimbursementAdmin } from './components/admin/ReimbursementAdmin';
 import { PenilaianAktivitas } from './components/admin/PenilaianAktivitas';
 import { EksporData } from './components/admin/EksporData';
 import { Pengaturan } from './components/admin/Pengaturan';
@@ -15,9 +17,14 @@ import { Pengaturan } from './components/admin/Pengaturan';
 // Employee Components
 import { TambahAktivitas } from './components/karyawan/TambahAktivitas';
 import { HistoriAktivitas } from './components/karyawan/HistoriAktivitas';
+import { Reimbursement } from './components/karyawan/Reimbursement';
 import { Statistik } from './components/karyawan/Statistik';
 import { Kalender } from './components/karyawan/Kalender';
 import { ImportAktivitas } from './components/karyawan/ImportAktivitas';
+
+// Test Components
+import { TestReimbursement } from './components/test/TestReimbursement';
+import { TestSupabaseConnection } from './components/test/TestSupabaseConnection';
 
 const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { user, loading } = useAuth();
@@ -91,6 +98,22 @@ function App() {
             } 
           />
           <Route 
+            path="/admin/profil-karyawan" 
+            element={
+              <AdminRoute>
+                <ProfilKaryawan />
+              </AdminRoute>
+            } 
+          />
+          <Route 
+            path="/admin/reimbursement" 
+            element={
+              <AdminRoute>
+                <ReimbursementAdmin />
+              </AdminRoute>
+            } 
+          />
+          <Route 
             path="/admin/penilaian" 
             element={
               <AdminRoute>
@@ -133,6 +156,14 @@ function App() {
             } 
           />
           <Route 
+            path="/karyawan/reimbursement" 
+            element={
+              <ProtectedRoute>
+                <Reimbursement />
+              </ProtectedRoute>
+            } 
+          />
+          <Route 
             path="/karyawan/statistik" 
             element={
               <ProtectedRoute>
@@ -155,6 +186,20 @@ function App() {
                 <ImportAktivitas />
               </ProtectedRoute>
             } 
+          />
+
+          <Route 
+            path="/test-reimbursement" 
+            element={
+              <ProtectedRoute>
+                <TestReimbursement />
+              </ProtectedRoute>
+            } 
+          />
+          
+          <Route 
+            path="/test-supabase" 
+            element={<TestSupabaseConnection />} 
           />
 
           <Route path="/" element={<Navigate to="/dashboard" />} />

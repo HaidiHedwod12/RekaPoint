@@ -9,11 +9,15 @@ import {
   MapIcon,
   ChartBarIcon,
   GlobeAltIcon,
-  BuildingOfficeIcon
+  BuildingOfficeIcon,
+  UserIcon,
+  CurrencyDollarIcon,
+  StarIcon
 } from '@heroicons/react/24/outline';
 import { MenuCard } from './MenuCard';
 import { useAuth } from '../../contexts/AuthContext';
 import { getAllUsers, getAllAktivitas } from '../../lib/database';
+import { getReimbursementStatsByMonthYear, getReimbursementStatsByYear } from '../../lib/reimbursement';
 import { Card } from '../ui/Card';
 
 export const AdminDashboard: React.FC = () => {
@@ -28,17 +32,23 @@ export const AdminDashboard: React.FC = () => {
     month: new Date().getMonth() + 1,
     year: new Date().getFullYear()
   });
+  const [totalReimbursementMonth, setTotalReimbursementMonth] = useState<number>(0);
+  const [totalReimbursementYear, setTotalReimbursementYear] = useState<number>(0);
 
   useEffect(() => {
     let isMounted = true;
     setLoading(true);
     Promise.all([
       getAllUsers(),
-      getAllAktivitas(filter.month, filter.year)
-    ]).then(([users, aktivitas]) => {
+      getAllAktivitas(filter.month, filter.year),
+      getReimbursementStatsByMonthYear(filter.month, filter.year),
+      getReimbursementStatsByYear(filter.year)
+    ]).then(([users, aktivitas, reimbursementMonth, reimbursementYear]) => {
       if (!isMounted) return;
       setTotalKaryawan(users.filter(u => u.role === 'karyawan').length);
       setTotalAktivitas(aktivitas.length);
+      setTotalReimbursementMonth(reimbursementMonth);
+      setTotalReimbursementYear(reimbursementYear);
       setLoading(false);
     });
     return () => { isMounted = false; };
@@ -51,6 +61,20 @@ export const AdminDashboard: React.FC = () => {
       icon: UsersIcon,
       iconBg: 'from-purple-500 to-pink-600',
       onClick: () => navigate('/admin/karyawan')
+    },
+    {
+      title: 'Profil Karyawan',
+      description: 'Kelola informasi dan dokumen karyawan',
+      icon: UserIcon,
+      iconBg: 'from-indigo-500 to-purple-600',
+      onClick: () => navigate('/admin/profil-karyawan')
+    },
+    {
+      title: 'Reimbursement',
+      description: 'Kelola permintaan reimbursement karyawan',
+      icon: CurrencyDollarIcon,
+      iconBg: 'from-emerald-500 to-green-600',
+      onClick: () => navigate('/admin/reimbursement')
     },
     {
       title: 'Penilaian Aktivitas',
@@ -72,6 +96,13 @@ export const AdminDashboard: React.FC = () => {
       icon: CogIcon,
       iconBg: 'from-cyan-500 to-blue-600',
       onClick: () => navigate('/admin/pengaturan')
+    },
+    {
+      title: 'Test Supabase',
+      description: 'Test koneksi database (Development)',
+      icon: StarIcon,
+      iconBg: 'from-yellow-500 to-orange-600',
+      onClick: () => navigate('/test-supabase')
     }
   ];
 
@@ -124,8 +155,8 @@ export const AdminDashboard: React.FC = () => {
           </motion.div>
         </motion.div>
 
-        {/* Menu Cards Tetap */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-12">
+        {/* Menu Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 mb-12">
           {menuItems.map((item, index) => (
             <motion.div
               key={item.title}
@@ -169,7 +200,7 @@ export const AdminDashboard: React.FC = () => {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 1.2 }}
-          className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-8"
+          className="mt-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8"
         >
           <Card className="text-center">
             <div className="flex flex-col items-center">
@@ -191,6 +222,28 @@ export const AdminDashboard: React.FC = () => {
                 {loading ? <span className="animate-pulse">...</span> : totalAktivitas}
               </div>
               <div className="text-gray-400">Aktivitas Bulan Ini</div>
+            </div>
+          </Card>
+          <Card className="text-center">
+            <div className="flex flex-col items-center">
+              <div className="w-12 h-12 rounded-full bg-gradient-to-br from-emerald-500 to-green-600 flex items-center justify-center mb-3">
+                <CurrencyDollarIcon className="w-7 h-7 text-white" />
+              </div>
+              <div className="text-3xl font-bold text-emerald-400 mb-1">
+                {loading ? <span className="animate-pulse">...</span> : `Rp ${totalReimbursementMonth.toLocaleString('id-ID')}`}
+              </div>
+              <div className="text-gray-400">Reimbursement Bulan Ini</div>
+            </div>
+          </Card>
+          <Card className="text-center">
+            <div className="flex flex-col items-center">
+              <div className="w-12 h-12 rounded-full bg-gradient-to-br from-blue-500 to-cyan-600 flex items-center justify-center mb-3">
+                <CurrencyDollarIcon className="w-7 h-7 text-white" />
+              </div>
+              <div className="text-3xl font-bold text-blue-400 mb-1">
+                {loading ? <span className="animate-pulse">...</span> : `Rp ${totalReimbursementYear.toLocaleString('id-ID')}`}
+              </div>
+              <div className="text-gray-400">Reimbursement Tahun Ini</div>
             </div>
           </Card>
         </motion.div>

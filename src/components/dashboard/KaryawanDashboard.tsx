@@ -10,7 +10,8 @@ import {
   MapPinIcon,
   DocumentTextIcon,
   GlobeAltIcon,
-  StarIcon
+  StarIcon,
+  CurrencyDollarIcon
 } from '@heroicons/react/24/outline';
 import { MenuCard } from './MenuCard';
 import { useAuth } from '../../contexts/AuthContext';
@@ -111,6 +112,13 @@ export const KaryawanDashboard: React.FC = () => {
       onClick: () => navigate('/karyawan/histori')
     },
     {
+      title: 'Reimbursement',
+      description: 'Ajukan penggantian biaya operasional',
+      icon: CurrencyDollarIcon,
+      iconBg: 'from-emerald-500 to-green-600',
+      onClick: () => navigate('/karyawan/reimbursement')
+    },
+    {
       title: 'Statistik',
       description: 'Lihat ringkasan dan poin aktivitas',
       icon: ChartBarIcon,
@@ -130,6 +138,13 @@ export const KaryawanDashboard: React.FC = () => {
       icon: DocumentArrowUpIcon,
       iconBg: 'from-purple-500 to-pink-600',
       onClick: () => navigate('/karyawan/import')
+    },
+    {
+      title: 'Test Supabase',
+      description: 'Test koneksi database (Development)',
+      icon: StarIcon,
+      iconBg: 'from-yellow-500 to-orange-600',
+      onClick: () => navigate('/test-supabase')
     }
   ];
 
