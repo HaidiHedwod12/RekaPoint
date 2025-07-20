@@ -110,7 +110,7 @@ export const AdminDashboard: React.FC = () => {
       description: 'Lihat dan kelola hasil notulensi kegiatan',
       icon: DocumentTextIcon,
       iconBg: 'from-blue-500 to-cyan-600',
-      onClick: () => navigate('/admin/notulensi')
+      onClick: () => navigate('/karyawan/notulensi', { state: { adminView: true } })
     }
   ];
 

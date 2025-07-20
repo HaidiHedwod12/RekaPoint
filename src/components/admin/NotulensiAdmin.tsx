@@ -196,7 +196,7 @@ const NotulensiAdmin: React.FC = () => {
                 <button className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded" onClick={() => handleExportWord(selected)}>Export Word</button>
                 <button className="bg-gray-600 hover:bg-gray-700 text-white px-3 py-1 rounded" onClick={() => handleCopy(selected)}>Copy</button>
                 <button className="bg-yellow-600 hover:bg-yellow-700 text-white px-3 py-1 rounded" onClick={() => {
-                  setEditData(selected);
+                  navigate('/karyawan/notulensi', { state: { editData: selected } });
                   setSelected(null);
                 }}>Edit</button>
                 <button className="bg-red-600 hover:bg-red-700 text-white px-3 py-1 rounded" onClick={async () => {
@@ -225,10 +225,10 @@ const NotulensiAdmin: React.FC = () => {
                   <div>
                     <div className="font-bold text-cyan-200 text-xl mb-1">{n.judul?.nama} {n.subjudul ? <span className="text-cyan-400">/ {n.subjudul.nama}</span> : ''}</div>
                     <div className="text-sm text-cyan-100 mb-1">Sesi: {n.sesi} | Tanggal: {n.tanggal}</div>
-                    <div className="text-sm text-cyan-300">Oleh: {n.user?.nama}</div>
+                    <div className="text-sm text-cyan-300">Diedit oleh: {n.user?.nama}</div>
                   </div>
                   <div className="flex items-center gap-2">
-                    <button title="Edit" className="p-2 rounded hover:bg-cyan-700/30" onClick={e => {e.stopPropagation(); setEditData(n); setSelected(n);}}><PencilIcon className="w-5 h-5 text-yellow-400" /></button>
+                    <button title="Edit" className="p-2 rounded hover:bg-cyan-700/30" onClick={e => {e.stopPropagation(); navigate('/karyawan/notulensi', { state: { editData: n } });}}><PencilIcon className="w-5 h-5 text-yellow-400" /></button>
                     <button title="Hapus" className="p-2 rounded hover:bg-red-700/30" onClick={async e => {e.stopPropagation(); if(window.confirm('Yakin hapus notulensi ini?')){ await deleteNotulensi(n.id); fetchNotulensi(); }}}><TrashIcon className="w-5 h-5 text-red-400" /></button>
                     <button title="Copy" className="p-2 rounded hover:bg-gray-700/30" onClick={e => {e.stopPropagation(); handleCopy(n);}}><DocumentDuplicateIcon className="w-5 h-5 text-gray-200" /></button>
                     <div className="relative group">

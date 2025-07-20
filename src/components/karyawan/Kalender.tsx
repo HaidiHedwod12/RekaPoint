@@ -6,7 +6,10 @@ import {
   ChevronLeftIcon,
   ChevronRightIcon,
   StarIcon,
-  DocumentTextIcon
+  DocumentTextIcon,
+  PencilIcon,
+  DocumentDuplicateIcon,
+  TrashIcon
 } from '@heroicons/react/24/outline';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '../ui/Button';
@@ -117,6 +120,88 @@ export const Kalender: React.FC = () => {
     if (avgPoin >= 60) return 'bg-yellow-500/20 border-yellow-500/50';
     if (avgPoin >= 40) return 'bg-orange-500/20 border-orange-500/50';
     return 'bg-red-500/20 border-red-500/50';
+  };
+
+  // State for edit modal
+  const [editItem, setEditItem] = useState<Aktivitas | null>(null);
+  const [editForm, setEditForm] = useState({
+    tanggal: '',
+    aktivitas: '',
+    deskripsi: ''
+  });
+
+  const handleEdit = (activity: Aktivitas) => {
+    setEditItem(activity);
+    setEditForm({
+      tanggal: activity.tanggal,
+      aktivitas: activity.aktivitas,
+      deskripsi: activity.deskripsi || ''
+    });
+  };
+
+  const handleEditSave = async () => {
+    if (!editItem || !user) return;
+    
+    try {
+      // Import updateAktivitas function
+      const { updateAktivitas } = await import('../../lib/database');
+      
+      await updateAktivitas(editItem.id, {
+        tanggal: editForm.tanggal,
+        aktivitas: editForm.aktivitas,
+        deskripsi: editForm.deskripsi
+      });
+      
+      await loadAktivitas();
+      setEditItem(null);
+      alert('Aktivitas berhasil diperbarui!');
+    } catch (error) {
+      console.error('Error updating aktivitas:', error);
+      alert('Gagal memperbarui aktivitas!');
+    }
+  };
+
+  const handleDuplicate = async (activity: Aktivitas) => {
+    if (!user) return;
+    
+    try {
+      // Import createAktivitas function
+      const { createAktivitas } = await import('../../lib/database');
+      
+      // Buat aktivitas baru dengan data yang sama, menggunakan tanggal asli
+      const duplicateData = {
+        user_id: user.id,
+        judul_id: activity.judul_id,
+        subjudul_id: activity.subjudul_id,
+        aktivitas: activity.aktivitas,
+        deskripsi: activity.deskripsi || '',
+        tanggal: activity.tanggal, // Gunakan tanggal asli
+        poin: activity.poin || 0
+      };
+      
+      await createAktivitas(duplicateData);
+      await loadAktivitas();
+      alert('Aktivitas berhasil diduplikasi! Aktivitas baru dibuat dengan tanggal yang sama.');
+    } catch (error) {
+      console.error('Error duplicating aktivitas:', error);
+      alert('Gagal menduplikasi aktivitas!');
+    }
+  };
+
+  const handleDelete = async (id: string) => {
+    if (!confirm('Apakah Anda yakin ingin menghapus aktivitas ini?')) return;
+    
+    try {
+      // Import deleteAktivitas function
+      const { deleteAktivitas } = await import('../../lib/database');
+      
+      await deleteAktivitas(id);
+      await loadAktivitas();
+      alert('Aktivitas berhasil dihapus!');
+    } catch (error) {
+      console.error('Error deleting aktivitas:', error);
+      alert('Gagal menghapus aktivitas!');
+    }
   };
 
   const days = getDaysInMonth(currentDate);
@@ -272,14 +357,33 @@ export const Kalender: React.FC = () => {
                               <h4 className="font-medium text-white mb-1">{activity.judul?.nama}</h4>
                               <p className="text-sm text-cyan-300">{activity.subjudul?.nama}</p>
                             </div>
-                            {activity.poin && (
-                              <div className="flex items-center space-x-1 text-yellow-400">
-                                <StarIcon className="w-4 h-4" />
-                                <span className="text-sm font-bold">
-                                  {user?.can_view_poin ? `${activity.poin}/100` : '-'}
-                                </span>
-                              </div>
-                            )}
+                            {/* Action Buttons */}
+                            <div className="flex gap-1">
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                className="border-cyan-500/50 text-cyan-300 text-xs px-2 py-1"
+                                onClick={() => handleEdit(activity)}
+                              >
+                                <PencilIcon className="w-3 h-3" />
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                className="border-blue-500/50 text-blue-300 text-xs px-2 py-1"
+                                onClick={() => handleDuplicate(activity)}
+                              >
+                                <DocumentDuplicateIcon className="w-3 h-3" />
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                className="border-red-500/50 text-red-300 text-xs px-2 py-1"
+                                onClick={() => handleDelete(activity.id)}
+                              >
+                                <TrashIcon className="w-3 h-3" />
+                              </Button>
+                            </div>
                           </div>
                           <p className="text-gray-300 text-sm mb-2">{activity.aktivitas}</p>
                           {activity.deskripsi && (
@@ -348,6 +452,36 @@ export const Kalender: React.FC = () => {
           </motion.div>
         </div>
       </div>
+
+      {/* Edit Modal */}
+      {editItem && (
+        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50">
+          <div className="bg-slate-800 rounded-xl p-8 w-full max-w-lg border border-cyan-500/30">
+            <h2 className="text-xl font-bold text-cyan-300 mb-4">Edit Aktivitas</h2>
+            <div className="space-y-3">
+              <label className="block text-sm text-gray-300">Tanggal</label>
+              <input type="date" className="w-full px-3 py-2 rounded bg-slate-700 text-white"
+                value={editForm.tanggal?.slice(0,10) || ''}
+                onChange={e => setEditForm({ ...editForm, tanggal: e.target.value })}
+              />
+              <label className="block text-sm text-gray-300">Aktivitas</label>
+              <input type="text" className="w-full px-3 py-2 rounded bg-slate-700 text-white"
+                value={editForm.aktivitas || ''}
+                onChange={e => setEditForm({ ...editForm, aktivitas: e.target.value })}
+              />
+              <label className="block text-sm text-gray-300">Deskripsi</label>
+              <textarea className="w-full px-3 py-2 rounded bg-slate-700 text-white"
+                value={editForm.deskripsi || ''}
+                onChange={e => setEditForm({ ...editForm, deskripsi: e.target.value })}
+              />
+            </div>
+            <div className="flex gap-2 mt-6 justify-end">
+              <Button variant="outline" onClick={() => setEditItem(null)} className="text-gray-300">Batal</Button>
+              <Button variant="outline" onClick={handleEditSave} className="text-cyan-300 border-cyan-500/50">Simpan</Button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

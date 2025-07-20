@@ -7,13 +7,14 @@ import {
   DocumentTextIcon,
   StarIcon,
   PencilIcon,
-  TrashIcon
+  TrashIcon,
+  DocumentDuplicateIcon
 } from '@heroicons/react/24/outline';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '../ui/Button';
 import { Card } from '../ui/Card';
 import { useAuth } from '../../contexts/AuthContext';
-import { getAktivitasByUser, deleteAktivitas, updateAktivitas } from '../../lib/database';
+import { getAktivitasByUser, deleteAktivitas, updateAktivitas, createAktivitas } from '../../lib/database';
 import { subscribeToTable, unsubscribeFromTable } from '../../lib/database';
 import { Aktivitas } from '../../types';
 import { format } from 'date-fns';
@@ -106,6 +107,31 @@ export const HistoriAktivitas: React.FC = () => {
       alert('Aktivitas berhasil diupdate!');
     } catch (error) {
       alert('Gagal update aktivitas!');
+    }
+  };
+
+  const handleDuplicate = async (item: Aktivitas) => {
+    if (!user) return;
+    
+    try {
+      // Buat aktivitas baru dengan data yang sama, menggunakan tanggal asli
+      const duplicateData = {
+        user_id: user.id,
+        judul_id: item.judul_id,
+        subjudul_id: item.subjudul_id,
+        aktivitas: item.aktivitas,
+        deskripsi: item.deskripsi || '',
+        tanggal: item.tanggal, // Gunakan tanggal asli
+        poin: item.poin || 0
+      };
+      
+      // Panggil fungsi create aktivitas
+      await createAktivitas(duplicateData);
+      await loadAktivitas();
+      alert('Aktivitas berhasil diduplikasi! Aktivitas baru dibuat dengan tanggal yang sama.');
+    } catch (error) {
+      console.error('Error duplicating aktivitas:', error);
+      alert('Gagal menduplikasi aktivitas!');
     }
   };
 
@@ -311,6 +337,14 @@ export const HistoriAktivitas: React.FC = () => {
                         }}
                       >
                         <PencilIcon className="w-4 h-4 mr-1" /> Edit
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="border-blue-500/50 text-blue-300 text-xs px-2 py-1"
+                        onClick={() => handleDuplicate(item)}
+                      >
+                        <DocumentDuplicateIcon className="w-4 h-4 mr-1" /> Duplicate
                       </Button>
                       <Button
                         size="sm"

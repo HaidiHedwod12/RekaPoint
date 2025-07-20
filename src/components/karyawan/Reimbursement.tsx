@@ -24,7 +24,6 @@ import { useAuth } from '../../contexts/AuthContext';
 import { 
   createReimbursementRequest, 
   getReimbursementRequestsByUser,
-  uploadReimbursementFile,
   updateReimbursementRequestByUser,
   deleteReimbursementRequest,
   type ReimbursementRequest as DBReimbursementRequest,
@@ -57,15 +56,13 @@ export const Reimbursement: React.FC = () => {
   const [judulLainnya, setJudulLainnya] = useState('');
   const [subJudulLainnya, setSubJudulLainnya] = useState('');
   const [tanggal, setTanggal] = useState('');
-  const [buktiFiles, setBuktiFiles] = useState<File[]>([]);
 
   // New item form
   const [newItem, setNewItem] = useState({
     description: '',
     amount: '',
     category: '',
-    date: '',
-    receipt_file: null as File | null
+    date: ''
   });
 
   // Hapus formData, gunakan state terpisah untuk judul, subjudul, tanggal, deskripsi, items
@@ -167,7 +164,7 @@ export const Reimbursement: React.FC = () => {
       date: tanggal || ''
     };
     setItems(prev => [...prev, item]);
-    setNewItem({ description: '', amount: '', category: '', date: '', receipt_file: null });
+    setNewItem({ description: '', amount: '', category: '', date: '' });
   };
 
   const removeItem = (itemId: string) => {
@@ -195,7 +192,7 @@ export const Reimbursement: React.FC = () => {
     } else {
       setItems(prev => [...prev, item]);
     }
-    setNewItem({ description: '', amount: '', category: '', date: '', receipt_file: null });
+    setNewItem({ description: '', amount: '', category: '', date: '' });
   };
 
   const removeEditItem = (itemId: string) => {
@@ -288,15 +285,11 @@ export const Reimbursement: React.FC = () => {
       };
       // Save to database
       const newRequest = await createReimbursementRequest(createRequest, user);
-      // Upload files jika ada
-      if (buktiFiles.length > 0) {
-        await Promise.all(buktiFiles.map(file => uploadReimbursementFile(file, newRequest.id, user.id)));
-      }
       setRequests(prev => [newRequest, ...prev]);
       setShowForm(false);
       setItems([]);
       setDescription('');
-      setJudulId(''); setSubJudulId(''); setJudulLainnya(''); setSubJudulLainnya(''); setTanggal(''); setBuktiFiles([]);
+      setJudulId(''); setSubJudulId(''); setJudulLainnya(''); setSubJudulLainnya(''); setTanggal('');
     } catch (error) {
       console.error('Error submitting request:', error);
       alert('Gagal mengirim permintaan');
@@ -393,7 +386,6 @@ export const Reimbursement: React.FC = () => {
     setJudulLainnya('');
     setSubJudulLainnya('');
     setTanggal('');
-    setBuktiFiles([]);
   };
 
   if (loading) {
@@ -705,12 +697,7 @@ export const Reimbursement: React.FC = () => {
                     placeholder="Jelaskan detail pengeluaran dan keperluan..." 
                   />
                 </div>
-                {!editRequest && (
-                  <div className="md:col-span-2">
-                    <label className="block text-sm font-medium text-gray-300 mb-2">Upload Bukti Kwitansi (Opsional, bisa lebih dari satu)</label>
-                    <input type="file" multiple onChange={e => setBuktiFiles(Array.from(e.target.files || []))} className="w-full px-4 py-2 glass-effect border border-gray-600/50 rounded-lg text-white bg-slate-700" accept=".jpg,.jpeg,.png,.pdf" />
-                  </div>
-                )}
+
               </div>
 
               {/* Items management for edit */}

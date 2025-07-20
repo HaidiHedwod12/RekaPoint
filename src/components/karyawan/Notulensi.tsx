@@ -8,7 +8,7 @@ import jsPDF from 'jspdf';
 import { saveAs } from 'file-saver';
 import { Document, Packer, Paragraph, TextRun } from 'docx';
 import './NotulensiQuill.css'; // Tambahkan import custom CSS untuk Quill
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { ArrowLeftIcon } from '@heroicons/react/24/outline';
 import { PencilIcon, TrashIcon, DocumentDuplicateIcon, ArrowDownTrayIcon, ChevronDownIcon, ChevronUpIcon } from '@heroicons/react/24/outline';
 import { Card } from '../ui/Card';
@@ -25,6 +25,7 @@ const SESSIONS = [
 const Notulensi: React.FC = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
   const [tab, setTab] = useState<'buat' | 'riwayat'>('buat');
   const [notulensi, setNotulensi] = useState<Notulensi[]>([]);
   const [loading, setLoading] = useState(true);
@@ -57,12 +58,57 @@ const Notulensi: React.FC = () => {
   const [loadingSessions, setLoadingSessions] = useState(false);
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [users, setUsers] = useState<any[]>([]);
+  
+  // Filter state
+  const [filter, setFilter] = useState({
+    judul: '',
+    subjudul: '',
+    sesi: '',
+    tahun: '',
+    search: ''
+  });
 
   useEffect(() => {
     if (user) fetchNotulensi();
     getAllJudul().then(setJudulList);
     getAllUsers().then(setUsers);
   }, [user]);
+
+  // Handle edit data from admin
+  useEffect(() => {
+    if (location.state?.editData) {
+      const editDataFromAdmin = location.state.editData;
+      setEditData(editDataFromAdmin);
+      setTab('riwayat'); // Langsung ke tab riwayat, bukan buat
+      setShowForm(false); // Jangan tampilkan form buat
+      
+      // Set judul and subjudul
+      const judul = judulList.find(j => j.id === editDataFromAdmin.judul_id);
+      if (judul) {
+        setSelectedJudul(judul);
+        setJudulId(judul.id);
+        
+        // Load sub judul list for this judul
+        getSubJudulByJudul(judul.id).then(subJudulList => {
+          const subJudul = subJudulList.find(s => s.id === editDataFromAdmin.subjudul_id);
+          if (subJudul) {
+            setSelectedSubJudul(subJudul);
+            setSubJudulId(subJudul.id);
+          }
+        });
+      }
+      
+      // Set other fields immediately
+      setSelectedSesi(editDataFromAdmin.sesi);
+      setTanggal(editDataFromAdmin.tanggal);
+      setTempat(editDataFromAdmin.tempat);
+      setCatatan(editDataFromAdmin.catatan);
+      setPihak(editDataFromAdmin.pihak?.map((p: any) => ({ nama_pihak: p.nama_pihak, perwakilan: p.perwakilan })) || []);
+      
+      // Clear the state to prevent re-triggering
+      navigate(location.pathname, { replace: true });
+    }
+  }, [location.state, judulList, navigate, location.pathname]);
 
   useEffect(() => {
     if (selectedJudul) {
@@ -97,8 +143,16 @@ const Notulensi: React.FC = () => {
 
   useEffect(() => {
     if (editData) {
-      setSesi(SESSIONS.includes(editData.sesi) ? editData.sesi : 'Lainnya');
-      setSesiLainnya(SESSIONS.includes(editData.sesi) ? '' : editData.sesi);
+      // Set sesi
+      if (SESSIONS.includes(editData.sesi)) {
+        setSesi(editData.sesi);
+        setSesiLainnya('');
+      } else {
+        setSesi('Lainnya');
+        setSesiLainnya(editData.sesi);
+      }
+      
+      // Set other fields
       setTanggal(editData.tanggal);
       setTempat(editData.tempat);
       setCatatan(editData.catatan);
@@ -389,13 +443,11 @@ const Notulensi: React.FC = () => {
                   <div className="mb-6 text-cyan-300 font-semibold text-2xl">Pilih Judul Kegiatan:</div>
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
                     {judulList.map(j => (
-                      <button key={j.id}
-                        className="group relative glass-effect bg-gradient-to-br from-slate-800/80 to-slate-900/80 border border-cyan-400/30 rounded-2xl p-8 flex items-center justify-center text-center font-bold text-2xl text-cyan-100 shadow-xl hover:from-cyan-900/70 hover:to-blue-900/70 hover:border-cyan-400 hover:scale-105 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-cyan-400"
-                        onClick={()=>setSelectedJudul(j)}
-                      >
-                        <span className="drop-shadow-lg group-hover:text-cyan-300">{j.nama}</span>
-                        <span className="absolute inset-0 rounded-2xl pointer-events-none group-hover:shadow-[0_0_32px_4px_rgba(34,211,238,0.25)]"></span>
-                      </button>
+                      <Card key={j.id} className="p-8 flex items-center justify-center text-center font-bold text-2xl text-cyan-100 cursor-pointer">
+                        <div onClick={()=>setSelectedJudul(j)} className="w-full h-full flex items-center justify-center">
+                          <span className="drop-shadow-lg">{j.nama}</span>
+                        </div>
+                      </Card>
                     ))}
                   </div>
                 </div>
@@ -405,9 +457,11 @@ const Notulensi: React.FC = () => {
                   <div className="mb-2 text-cyan-300 font-semibold">Pilih Sub Judul:</div>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     {subJudulList.map(s => (
-                      <button key={s.id} className="bg-slate-800 border border-cyan-700 rounded-lg p-4 text-left hover:bg-cyan-900 transition" onClick={()=>setSelectedSubJudul(s)}>
-                        <div className="font-bold text-cyan-200">{s.nama}</div>
-                      </button>
+                      <Card key={s.id} className="p-4 text-left cursor-pointer">
+                        <div onClick={()=>setSelectedSubJudul(s)} className="w-full h-full">
+                          <div className="font-bold text-cyan-200">{s.nama}</div>
+                        </div>
+                      </Card>
                     ))}
                   </div>
                 </div>
@@ -417,15 +471,12 @@ const Notulensi: React.FC = () => {
                   <div className="mb-2 text-cyan-300 font-semibold">Pilih Sesi:</div>
                   <div className="flex flex-wrap gap-2 mb-4">
                     {allSessions.map(s => (
-                      <button
-                        key={s}
-                        className={`relative px-5 py-2 rounded-xl border border-cyan-400/40 bg-slate-800/70 text-cyan-100 font-semibold text-lg shadow hover:bg-cyan-900/40 transition flex items-center gap-2 ${sesiSudahAda.includes(s) ? 'ring-2 ring-green-400/70' : ''}`}
-                        onClick={()=>setSelectedSesi(s)}
-                        disabled={loadingSessions}
-                      >
-                        {sesiSudahAda.includes(s) && <span className="inline-block w-3 h-3 bg-green-400 rounded-full mr-1" title="Sudah ada notulensi"></span>}
-                        {s}
-                      </button>
+                      <Card key={s} className={`px-5 py-2 text-cyan-100 font-semibold text-lg cursor-pointer flex items-center gap-2 ${sesiSudahAda.includes(s) ? 'ring-2 ring-green-400/70' : ''}`}>
+                        <div onClick={()=>setSelectedSesi(s)} className="w-full h-full flex items-center gap-2" style={{ pointerEvents: loadingSessions ? 'none' : 'auto' }}>
+                          {sesiSudahAda.includes(s) && <span className="inline-block w-3 h-3 bg-green-400 rounded-full mr-1" title="Sudah ada notulensi"></span>}
+                          {s}
+                        </div>
+                      </Card>
                     ))}
                   </div>
                   <div className="flex items-center gap-2 mt-2">
@@ -494,78 +545,162 @@ const Notulensi: React.FC = () => {
       )}
       {tab === 'riwayat' && (
         <div className="space-y-6">
-          {loading ? (
-            <div className="text-gray-400">Memuat data...</div>
-          ) : notulensi.length === 0 ? (
-            <div className="text-gray-400">Belum ada notulensi.</div>
-          ) : (
-            notulensi.map(n => (
-              <Card key={n.id} className={`relative glass-effect bg-slate-800/60 backdrop-blur border border-cyan-400/30 rounded-2xl shadow-xl p-6 transition-all duration-200 ${expandedId === n.id ? 'ring-2 ring-cyan-400/60' : ''}`}
-                >
-                <div className="flex items-center justify-between cursor-pointer" onClick={() => setExpandedId(expandedId === n.id ? null : n.id)}>
-                  <div>
-                    <div className="font-bold text-cyan-200 text-xl mb-1">{n.judul?.nama} {n.subjudul ? <span className="text-cyan-400">/ {n.subjudul.nama}</span> : ''}</div>
-                    <div className="text-sm text-cyan-100 mb-1">Sesi: {n.sesi} | Tanggal: {n.tanggal}</div>
-                    <div className="text-sm text-cyan-300">Dibuat oleh: {users.find(u => u.id === n.created_by)?.nama || n.user?.nama}
-                      {Array.isArray(n.edited_by) && n.edited_by.length > 0 && (
-                        <>
-                          <br />Diedit oleh: {users.filter(u => n.edited_by?.includes(u.id)).map(u => u.nama).join(', ')}
-                        </>
-                      )}
-                    </div>
+          {/* Filter Section */}
+          <div className="flex flex-wrap gap-4 mb-8">
+            <select 
+              className="px-4 py-2 glass-effect border border-cyan-400/30 rounded-lg text-white bg-slate-800/50 focus:outline-none focus:ring-2 focus:ring-cyan-400 [&>option]:bg-slate-800 [&>option]:text-white" 
+              value={filter.judul} 
+              onChange={e => setFilter(f => ({ ...f, judul: e.target.value, subjudul: '' }))}
+            >
+              <option value="">Semua Judul</option>
+              {judulList.map(j => <option key={j.id} value={j.id}>{j.nama}</option>)}
+            </select>
+            <select 
+              className="px-4 py-2 glass-effect border border-cyan-400/30 rounded-lg text-white bg-slate-800/50 focus:outline-none focus:ring-2 focus:ring-cyan-400 [&>option]:bg-slate-800 [&>option]:text-white" 
+              value={filter.subjudul} 
+              onChange={e => setFilter(f => ({ ...f, subjudul: e.target.value }))}
+            >
+              <option value="">Semua Sub Judul</option>
+              {filter.judul ? 
+                subJudulList.filter(s => s.judul_id === filter.judul).map(s => <option key={s.id} value={s.id}>{s.nama}</option>) :
+                subJudulList.map(s => <option key={s.id} value={s.id}>{s.nama}</option>)
+              }
+            </select>
+            <select 
+              className="px-4 py-2 glass-effect border border-cyan-400/30 rounded-lg text-white bg-slate-800/50 focus:outline-none focus:ring-2 focus:ring-cyan-400 [&>option]:bg-slate-800 [&>option]:text-white" 
+              value={filter.sesi} 
+              onChange={e => setFilter(f => ({ ...f, sesi: e.target.value }))}
+            >
+              <option value="">Semua Sesi</option>
+              {SESSIONS.map(s => <option key={s} value={s}>{s}</option>)}
+            </select>
+            <select 
+              className="px-4 py-2 glass-effect border border-cyan-400/30 rounded-lg text-white bg-slate-800/50 focus:outline-none focus:ring-2 focus:ring-cyan-400 [&>option]:bg-slate-800 [&>option]:text-white" 
+              value={filter.tahun} 
+              onChange={e => setFilter(f => ({ ...f, tahun: e.target.value }))}
+            >
+              <option value="">Semua Tahun</option>
+              {Array.from({ length: 5 }, (_, i) => (
+                <option key={2025 + i} value={2025 + i}>{2025 + i}</option>
+              ))}
+            </select>
+            <input 
+              className="px-4 py-2 glass-effect border border-cyan-400/30 rounded-lg text-white bg-slate-800/50 focus:outline-none focus:ring-2 focus:ring-cyan-400" 
+              type="text" 
+              placeholder="Cari notulensi..." 
+              value={filter.search} 
+              onChange={e => setFilter(f => ({ ...f, search: e.target.value }))} 
+            />
+          </div>
+          
+          {/* Filtered Results */}
+          {(() => {
+            let filteredNotulensi = notulensi;
+            
+            // Filter by judul
+            if (filter.judul) {
+              filteredNotulensi = filteredNotulensi.filter(n => n.judul_id === filter.judul);
+            }
+            
+            // Filter by subjudul
+            if (filter.subjudul) {
+              filteredNotulensi = filteredNotulensi.filter(n => n.subjudul_id === filter.subjudul);
+            }
+            
+            // Filter by sesi
+            if (filter.sesi) {
+              filteredNotulensi = filteredNotulensi.filter(n => n.sesi === filter.sesi);
+            }
+            
+            // Filter by tahun
+            if (filter.tahun) {
+              filteredNotulensi = filteredNotulensi.filter(n => n.tanggal.startsWith(filter.tahun));
+            }
+            
+            // Filter by search
+            if (filter.search) {
+              const searchLower = filter.search.toLowerCase();
+              filteredNotulensi = filteredNotulensi.filter(n => 
+                n.judul?.nama?.toLowerCase().includes(searchLower) ||
+                n.subjudul?.nama?.toLowerCase().includes(searchLower) ||
+                n.sesi?.toLowerCase().includes(searchLower) ||
+                n.tempat?.toLowerCase().includes(searchLower) ||
+                n.catatan?.toLowerCase().includes(searchLower)
+              );
+            }
+            
+            return (
+              <>
+                {loading ? (
+                  <div className="text-gray-400">Memuat data...</div>
+                ) : filteredNotulensi.length === 0 ? (
+                  <div className="text-gray-400">
+                    {notulensi.length === 0 ? "Belum ada notulensi." : "Tidak ada notulensi sesuai filter."}
                   </div>
-                  <div className="flex items-center gap-2">
-                    <button title="Edit" className="p-2 rounded hover:bg-cyan-700/30" onClick={async e => {
-                      e.stopPropagation();
-                      setSelected(null); // Tutup modal detail!
-                      setTab('buat');
-                      setEditData(n);
-                      setShowForm(true);
-                      const judul = judulList.find(j => j.id === n.judul_id) || null;
-                      setSelectedJudul(judul);
-                      if (judul) {
-                        const subList = await getSubJudulByJudul(judul.id);
-                        setSubJudulList(subList);
-                        setSelectedSubJudul(subList.find(s => s.id === n.subjudul_id) || null);
-                      } else {
-                        setSelectedSubJudul(null);
-                      }
-                      setSelectedSesi(n.sesi);
-                      setTanggal(n.tanggal);
-                      setTempat(n.tempat);
-                      setCatatan(n.catatan);
-                      setPihak(n.pihak?.map(p => ({ nama_pihak: p.nama_pihak, perwakilan: p.perwakilan })) || []);
-                    }}><PencilIcon className="w-5 h-5 text-yellow-400" /></button>
-                    <button title="Hapus" className="p-2 rounded hover:bg-red-700/30" onClick={async e => {e.stopPropagation(); if(window.confirm('Yakin hapus notulensi ini?')){ await deleteNotulensi(n.id); fetchNotulensi(); }}}><TrashIcon className="w-5 h-5 text-red-400" /></button>
-                    <button title="Copy" className="p-2 rounded hover:bg-gray-700/30" onClick={e => {e.stopPropagation(); handleCopy(n);}}><DocumentDuplicateIcon className="w-5 h-5 text-gray-200" /></button>
-                    <div className="relative group">
-                      <button title="Export" className="p-2 rounded hover:bg-blue-700/30" onClick={e => {e.stopPropagation(); setExpandedId(expandedId === n.id ? null : n.id);}}><ArrowDownTrayIcon className="w-5 h-5 text-blue-400" /></button>
-                      <div className="absolute right-0 mt-2 z-10 hidden group-hover:block bg-slate-900 border border-cyan-400/30 rounded shadow-lg">
-                        <button className="block w-full px-4 py-2 text-cyan-200 hover:bg-cyan-700/30" onClick={e => {e.stopPropagation(); handleExportPDF(n);}}>Export PDF</button>
-                        <button className="block w-full px-4 py-2 text-cyan-200 hover:bg-cyan-700/30" onClick={e => {e.stopPropagation(); handleExportWord(n);}}>Export Word</button>
+                ) : (
+                                    filteredNotulensi.map(n => (
+                    <Card key={n.id} className={`relative ${expandedId === n.id ? 'ring-2 ring-cyan-400/60' : ''}`}>
+                      <div className="flex items-center justify-between cursor-pointer" onClick={() => setExpandedId(expandedId === n.id ? null : n.id)}>
+                        <div>
+                          <div className="font-bold text-cyan-200 text-xl mb-1">{n.judul?.nama} {n.subjudul ? <span className="text-cyan-400">/ {n.subjudul.nama}</span> : ''}</div>
+                          <div className="text-sm text-cyan-100 mb-1">Sesi: {n.sesi} | Tanggal: {n.tanggal}</div>
+                          <div className="text-sm text-cyan-300">Diedit oleh: {users.filter(u => n.edited_by?.includes(u.id)).map(u => u.nama).join(', ') || n.user?.nama}</div>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <button title="Edit" className="p-2 rounded hover:bg-cyan-700/30" onClick={async e => {
+                            e.stopPropagation();
+                            setSelected(null); // Tutup modal detail!
+                            setTab('buat');
+                            setEditData(n);
+                            setShowForm(true);
+                            const judul = judulList.find(j => j.id === n.judul_id) || null;
+                            setSelectedJudul(judul);
+                            if (judul) {
+                              const subList = await getSubJudulByJudul(judul.id);
+                              setSubJudulList(subList);
+                              setSelectedSubJudul(subList.find(s => s.id === n.subjudul_id) || null);
+                            } else {
+                              setSelectedSubJudul(null);
+                            }
+                            setSelectedSesi(n.sesi);
+                            setTanggal(n.tanggal);
+                            setTempat(n.tempat);
+                            setCatatan(n.catatan);
+                            setPihak(n.pihak?.map(p => ({ nama_pihak: p.nama_pihak, perwakilan: p.perwakilan })) || []);
+                          }}><PencilIcon className="w-5 h-5 text-yellow-400" /></button>
+                          <button title="Hapus" className="p-2 rounded hover:bg-red-700/30" onClick={async e => {e.stopPropagation(); if(window.confirm('Yakin hapus notulensi ini?')){ await deleteNotulensi(n.id); fetchNotulensi(); }}}><TrashIcon className="w-5 h-5 text-red-400" /></button>
+                          <button title="Copy" className="p-2 rounded hover:bg-gray-700/30" onClick={e => {e.stopPropagation(); handleCopy(n);}}><DocumentDuplicateIcon className="w-5 h-5 text-gray-200" /></button>
+                          <div className="relative group">
+                            <button title="Export" className="p-2 rounded hover:bg-blue-700/30" onClick={e => {e.stopPropagation(); setExpandedId(expandedId === n.id ? null : n.id);}}><ArrowDownTrayIcon className="w-5 h-5 text-blue-400" /></button>
+                            <div className="absolute right-0 mt-2 z-10 hidden group-hover:block bg-slate-900 border border-cyan-400/30 rounded shadow-lg">
+                              <button className="block w-full px-4 py-2 text-cyan-200 hover:bg-cyan-700/30" onClick={e => {e.stopPropagation(); handleExportPDF(n);}}>Export PDF</button>
+                              <button className="block w-full px-4 py-2 text-cyan-200 hover:bg-cyan-700/30" onClick={e => {e.stopPropagation(); handleExportWord(n);}}>Export Word</button>
+                            </div>
+                          </div>
+                          <button className="ml-2 p-2 rounded hover:bg-cyan-700/20">
+                            {expandedId === n.id ? <ChevronUpIcon className="w-5 h-5 text-cyan-300" /> : <ChevronDownIcon className="w-5 h-5 text-cyan-300" />}
+                          </button>
+                        </div>
                       </div>
-                    </div>
-                    <button className="ml-2 p-2 rounded hover:bg-cyan-700/20">
-                      {expandedId === n.id ? <ChevronUpIcon className="w-5 h-5 text-cyan-300" /> : <ChevronDownIcon className="w-5 h-5 text-cyan-300" />}
-                    </button>
-                  </div>
-                </div>
-                {expandedId === n.id && (
-                  <div className="px-8 pb-6">
-                    <div className="mb-2 text-cyan-200"><b>Pihak:</b>
-                      <ul className="ml-4 list-disc">
-                        {n.pihak?.map((p, i) => (
-                          <li key={i}><b>{p.nama_pihak}</b>: {p.perwakilan.join(', ')}</li>
-                        ))}
-                      </ul>
-                    </div>
-                    <div className="mb-2 text-cyan-200"><b>Catatan:</b></div>
-                    <div className="prose prose-invert bg-slate-900/80 rounded p-3 mb-2" dangerouslySetInnerHTML={{ __html: n.catatan }} />
-                  </div>
+                      {expandedId === n.id && (
+                        <div className="px-8 pb-6">
+                          <div className="mb-2 text-cyan-200"><b>Pihak:</b>
+                            <ul className="ml-4 list-disc">
+                              {n.pihak?.map((p, i) => (
+                                <li key={i}><b>{p.nama_pihak}</b>: {p.perwakilan.join(', ')}</li>
+                              ))}
+                            </ul>
+                          </div>
+                          <div className="mb-2 text-cyan-200"><b>Catatan:</b></div>
+                          <div className="prose prose-invert bg-slate-900/80 rounded p-3 mb-2" dangerouslySetInnerHTML={{ __html: n.catatan }} />
+                        </div>
+                      )}
+                    </Card>
+                  ))
                 )}
-              </Card>
-            ))
-          )}
+              </>
+            );
+          })()}
         </div>
       )}
       {(selected && !(showForm || editData)) && (

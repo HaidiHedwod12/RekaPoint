@@ -463,11 +463,11 @@ export const ProfilKaryawan: React.FC = () => {
                       )}
                       
                       {selectedEmployee.alamat && (
-                        <div className="flex items-center space-x-3">
-                          <MapPinIcon className="w-5 h-5 text-cyan-400" />
-                          <div>
+                        <div className="flex items-start space-x-3">
+                          <MapPinIcon className="w-5 h-5 text-cyan-400 mt-0.5 flex-shrink-0" />
+                          <div className="min-w-0 flex-1">
                             <p className="text-sm text-gray-400">Alamat</p>
-                            <p className="text-white font-medium">{selectedEmployee.alamat}</p>
+                            <p className="text-white font-medium break-words">{selectedEmployee.alamat}</p>
                           </div>
                         </div>
                       )}
