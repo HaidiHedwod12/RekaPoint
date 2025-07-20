@@ -140,6 +140,13 @@ export const KaryawanDashboard: React.FC = () => {
       onClick: () => navigate('/karyawan/import')
     },
     {
+      title: 'Notulensi',
+      description: 'Catat hasil paparan dan diskusi kegiatan',
+      icon: DocumentTextIcon,
+      iconBg: 'from-blue-500 to-cyan-600',
+      onClick: () => navigate('/karyawan/notulensi')
+    },
+    {
       title: 'Test Supabase',
       description: 'Test koneksi database (Development)',
       icon: StarIcon,

@@ -13,6 +13,7 @@ import { ReimbursementAdmin } from './components/admin/ReimbursementAdmin';
 import { PenilaianAktivitas } from './components/admin/PenilaianAktivitas';
 import { EksporData } from './components/admin/EksporData';
 import { Pengaturan } from './components/admin/Pengaturan';
+import NotulensiAdmin from './components/admin/NotulensiAdmin';
 
 // Employee Components
 import { TambahAktivitas } from './components/karyawan/TambahAktivitas';
@@ -21,6 +22,7 @@ import { Reimbursement } from './components/karyawan/Reimbursement';
 import { Statistik } from './components/karyawan/Statistik';
 import { Kalender } from './components/karyawan/Kalender';
 import { ImportAktivitas } from './components/karyawan/ImportAktivitas';
+import Notulensi from './components/karyawan/Notulensi';
 
 // Test Components
 import { TestReimbursement } from './components/test/TestReimbursement';
@@ -137,6 +139,14 @@ function App() {
               </AdminRoute>
             } 
           />
+          <Route 
+            path="/admin/notulensi" 
+            element={
+              <AdminRoute>
+                <NotulensiAdmin />
+              </AdminRoute>
+            } 
+          />
 
           {/* Employee Routes */}
           <Route 
@@ -184,6 +194,14 @@ function App() {
             element={
               <ProtectedRoute>
                 <ImportAktivitas />
+              </ProtectedRoute>
+            } 
+          />
+          <Route 
+            path="/karyawan/notulensi" 
+            element={
+              <ProtectedRoute>
+                <Notulensi />
               </ProtectedRoute>
             } 
           />

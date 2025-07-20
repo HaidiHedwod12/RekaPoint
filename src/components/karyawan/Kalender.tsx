@@ -262,44 +262,59 @@ export const Kalender: React.FC = () => {
               </h3>
 
               {selectedDate ? (
-                selectedActivities.length > 0 ? (
-                  <div className="space-y-4">
-                    {selectedActivities.map((activity) => (
-                      <div key={activity.id} className="glass-effect rounded-lg p-4 border border-gray-700/50">
-                        <div className="flex items-start justify-between mb-3">
-                          <div className="flex-1">
-                            <h4 className="font-medium text-white mb-1">{activity.judul?.nama}</h4>
-                            <p className="text-sm text-cyan-300">{activity.subjudul?.nama}</p>
-                          </div>
-                          {activity.poin && (
-                            <div className="flex items-center space-x-1 text-yellow-400">
-                              <StarIcon className="w-4 h-4" />
-                              <span className="text-sm font-bold">
-                                {user?.can_view_poin ? `${activity.poin}/100` : '-'}
-                              </span>
+                <div>
+                  {selectedActivities.length > 0 && (
+                    <div className="space-y-4 mb-4">
+                      {selectedActivities.map((activity) => (
+                        <div key={activity.id} className="glass-effect rounded-lg p-4 border border-gray-700/50">
+                          <div className="flex items-start justify-between mb-3">
+                            <div className="flex-1">
+                              <h4 className="font-medium text-white mb-1">{activity.judul?.nama}</h4>
+                              <p className="text-sm text-cyan-300">{activity.subjudul?.nama}</p>
                             </div>
+                            {activity.poin && (
+                              <div className="flex items-center space-x-1 text-yellow-400">
+                                <StarIcon className="w-4 h-4" />
+                                <span className="text-sm font-bold">
+                                  {user?.can_view_poin ? `${activity.poin}/100` : '-'}
+                                </span>
+                              </div>
+                            )}
+                          </div>
+                          <p className="text-gray-300 text-sm mb-2">{activity.aktivitas}</p>
+                          {activity.deskripsi && (
+                            <p className="text-gray-400 text-xs">{activity.deskripsi}</p>
                           )}
                         </div>
-                        <p className="text-gray-300 text-sm mb-2">{activity.aktivitas}</p>
-                        {activity.deskripsi && (
-                          <p className="text-gray-400 text-xs">{activity.deskripsi}</p>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <div className="text-center py-8">
-                    <DocumentTextIcon className="w-12 h-12 text-gray-500 mx-auto mb-4" />
-                    <p className="text-gray-400">Tidak ada aktivitas pada tanggal ini</p>
+                      ))}
+                    </div>
+                  )}
+                  
+                  {selectedActivities.length === 0 && (
+                    <div className="text-center py-8">
+                      <DocumentTextIcon className="w-12 h-12 text-gray-500 mx-auto mb-4" />
+                      <p className="text-gray-400">Tidak ada aktivitas pada tanggal ini</p>
+                    </div>
+                  )}
+                  
+                  <div className="text-center">
                     <Button
-                      onClick={() => navigate('/karyawan/tambah')}
-                      className="mt-4 bg-gradient-to-r from-green-500 to-teal-600"
+                      onClick={() => {
+                        if (selectedDate) {
+                          const year = selectedDate.getFullYear();
+                          const month = String(selectedDate.getMonth() + 1).padStart(2, '0');
+                          const day = String(selectedDate.getDate()).padStart(2, '0');
+                          const dateString = `${year}-${month}-${day}`;
+                          navigate('/karyawan/tambah', { state: { selectedDate: dateString } });
+                        }
+                      }}
+                      className="bg-gradient-to-r from-green-500 to-teal-600"
                       size="sm"
                     >
                       Tambah Aktivitas
                     </Button>
                   </div>
-                )
+                </div>
               ) : (
                 <div className="text-center py-8">
                   <CalendarIcon className="w-12 h-12 text-gray-500 mx-auto mb-4" />

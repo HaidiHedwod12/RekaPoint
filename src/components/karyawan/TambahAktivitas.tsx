@@ -8,7 +8,7 @@ import {
   DocumentIcon,
   PencilSquareIcon
 } from '@heroicons/react/24/outline';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { Button } from '../ui/Button';
 import { Input } from '../ui/Input';
 import { Card } from '../ui/Card';
@@ -19,6 +19,7 @@ import { Judul, SubJudul } from '../../types';
 
 export const TambahAktivitas: React.FC = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const { user } = useAuth();
   const [juduls, setJuduls] = useState<Judul[]>([]);
   const [subjuduls, setSubjuduls] = useState<SubJudul[]>([]);
@@ -26,7 +27,7 @@ export const TambahAktivitas: React.FC = () => {
   const [saving, setSaving] = useState(false);
   
   const [formData, setFormData] = useState({
-    tanggal: new Date().toISOString().split('T')[0],
+    tanggal: location.state?.selectedDate || new Date().toISOString().split('T')[0],
     judul_id: '',
     subjudul_id: '',
     aktivitas: '',

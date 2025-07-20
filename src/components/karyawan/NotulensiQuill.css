@@ -1,0 +1,9 @@
+.quill-notulensi .ql-editor {
+  color: #222 !important;
+  background: #fff !important;
+  font-size: 18px;
+}
+
+.quill-notulensi .ql-toolbar {
+  background: #f8fafc;
+} 

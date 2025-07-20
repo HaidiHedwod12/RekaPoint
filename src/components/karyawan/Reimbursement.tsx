@@ -25,6 +25,8 @@ import {
   createReimbursementRequest, 
   getReimbursementRequestsByUser,
   uploadReimbursementFile,
+  updateReimbursementRequestByUser,
+  deleteReimbursementRequest,
   type ReimbursementRequest as DBReimbursementRequest,
   type CreateReimbursementRequest
 } from '../../lib/reimbursement';
@@ -70,6 +72,12 @@ export const Reimbursement: React.FC = () => {
   const [items, setItems] = useState<ReimbursementItem[]>([]);
   const [description, setDescription] = useState('');
 
+  // Edit state
+  const [editRequest, setEditRequest] = useState<ReimbursementRequest | null>(null);
+  const [editForm, setEditForm] = useState<any>({});
+  const [editItem, setEditItem] = useState<ReimbursementItem | null>(null);
+  const [editItemForm, setEditItemForm] = useState<any>({});
+
   const categories = [
     'Transportasi',
     'Makan & Minuman',
@@ -94,6 +102,14 @@ export const Reimbursement: React.FC = () => {
   useEffect(() => {
     loadReimbursements();
   }, []);
+
+  useEffect(() => {
+    if (editForm.judulId && editForm.judulId !== 'lainnya') {
+      getSubJudulByJudul(editForm.judulId).then(setSubJudulList);
+    } else {
+      setSubJudulList([]);
+    }
+  }, [editForm.judulId]);
 
   const loadReimbursements = async () => {
     if (!user) return;
@@ -149,13 +165,92 @@ export const Reimbursement: React.FC = () => {
       amount: parseFloat(newItem.amount),
       category: newItem.category,
       date: tanggal || ''
-      // Tidak ada receipt_name/receipt_file_name di sini
     };
     setItems(prev => [...prev, item]);
     setNewItem({ description: '', amount: '', category: '', date: '', receipt_file: null });
   };
+
   const removeItem = (itemId: string) => {
     setItems(prev => prev.filter(item => item.id !== itemId));
+  };
+
+  const addEditItem = () => {
+    if (!newItem.description || !newItem.amount || !newItem.category) {
+      alert('Mohon lengkapi semua field item');
+      return;
+    }
+    const item: ReimbursementItem = {
+      id: Date.now().toString(),
+      description: newItem.description,
+      amount: parseFloat(newItem.amount),
+      category: newItem.category,
+      date: editRequest ? editForm.tanggal : tanggal
+    };
+    
+    if (editRequest) {
+      setEditForm((prev: any) => ({
+        ...prev,
+        items: [...(prev.items || []), item]
+      }));
+    } else {
+      setItems(prev => [...prev, item]);
+    }
+    setNewItem({ description: '', amount: '', category: '', date: '', receipt_file: null });
+  };
+
+  const removeEditItem = (itemId: string) => {
+    if (editRequest) {
+      setEditForm((prev: any) => ({
+        ...prev,
+        items: (prev.items || []).filter((item: any) => item.id !== itemId)
+      }));
+    } else {
+      setItems(prev => prev.filter(item => item.id !== itemId));
+    }
+  };
+
+  const startEditItem = (item: ReimbursementItem) => {
+    setEditItem(item);
+    setEditItemForm({
+      description: item.description,
+      amount: item.amount.toString(),
+      category: item.category
+    });
+  };
+
+  const saveEditItem = () => {
+    if (!editItem || !editItemForm.description || !editItemForm.amount || !editItemForm.category) {
+      alert('Mohon lengkapi semua field item');
+      return;
+    }
+
+    const updatedItem = {
+      ...editItem,
+      description: editItemForm.description,
+      amount: parseFloat(editItemForm.amount),
+      category: editItemForm.category
+    };
+
+    if (editRequest) {
+      setEditForm((prev: any) => ({
+        ...prev,
+        items: (prev.items || []).map((item: any) => 
+          item.id === editItem.id ? updatedItem : item
+        )
+      }));
+    } else {
+      setItems(prev => prev.map(item => 
+        item.id === editItem.id ? updatedItem : item
+      ));
+    }
+
+    setEditItem(null);
+    setEditItemForm({});
+  };
+
+  const cancelEditItem = () => {
+    setEditItem(null);
+    setEditItemForm({});
   };
 
   const submitRequest = async () => {
@@ -208,6 +303,97 @@ export const Reimbursement: React.FC = () => {
     } finally {
       setSubmitting(false);
     }
+  };
+
+  const handleEdit = async (request: ReimbursementRequest) => {
+    // Cari judul yang sesuai
+    const matchedJudul = judulList.find(j => j.nama === request.title);
+    
+    setEditRequest(request);
+    setEditForm({
+      title: request.title,
+      subjudul: request.subjudul,
+      tanggal: request.tanggal,
+      description: request.description || '',
+      items: request.items || [],
+      judulId: matchedJudul ? matchedJudul.id : 'lainnya',
+      subJudulId: '' // Akan diisi setelah load subjudul
+    });
+    
+    // Load subjudul jika ada judul yang dipilih
+    if (matchedJudul) {
+      const subJuduls = await getSubJudulByJudul(matchedJudul.id);
+      setSubJudulList(subJuduls);
+      
+      // Cari subjudul yang sesuai setelah load
+      const matchedSubJudul = subJuduls.find(s => s.nama === request.subjudul);
+      setEditForm((prev: any) => ({
+        ...prev,
+        subJudulId: matchedSubJudul ? matchedSubJudul.id : 'lainnya'
+      }));
+    }
+    
+    setShowForm(true);
+  };
+
+  const handleEditSave = async () => {
+    if (!editRequest || !user) return;
+    
+    setSubmitting(true);
+    try {
+      // Update reimbursement request
+      const updatedRequest = {
+        title: editForm.title,
+        subjudul: editForm.subjudul,
+        tanggal: editForm.tanggal,
+        description: editForm.description,
+        items: editForm.items
+      };
+      
+      // Call update function
+      await updateReimbursementRequestByUser(editRequest.id, updatedRequest, user);
+      
+      setEditRequest(null);
+      setEditForm({});
+      setShowForm(false);
+      await loadReimbursements();
+      alert('Reimbursement berhasil diupdate!');
+    } catch (error) {
+      console.error('Error updating request:', error);
+      alert('Gagal mengupdate reimbursement');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleDelete = async (requestId: string) => {
+    if (!user) return;
+
+    if (window.confirm('Apakah Anda yakin ingin menghapus permintaan reimbursement ini?')) {
+      try {
+        await deleteReimbursementRequest(requestId);
+        alert('Reimbursement berhasil dihapus.');
+        loadReimbursements();
+      } catch (error) {
+        console.error('Error deleting reimbursement:', error);
+        alert('Gagal menghapus reimbursement.');
+      }
+    }
+  };
+
+  const resetForm = () => {
+    setEditRequest(null);
+    setEditForm({});
+    setEditItem(null);
+    setEditItemForm({});
+    setItems([]);
+    setDescription('');
+    setJudulId('');
+    setSubJudulId('');
+    setJudulLainnya('');
+    setSubJudulLainnya('');
+    setTanggal('');
+    setBuktiFiles([]);
   };
 
   if (loading) {
@@ -272,11 +458,14 @@ export const Reimbursement: React.FC = () => {
                   <div className="flex items-start justify-between">
                     <div className="flex-1">
                       <div className="flex items-center space-x-3 mb-4">
-                                                 <div className="w-12 h-12 bg-gradient-to-br from-cyan-500 to-blue-600 rounded-full flex items-center justify-center">
-                           <DocumentTextIcon className="w-6 h-6 text-white" />
-                         </div>
+                        <div className="w-12 h-12 bg-gradient-to-br from-cyan-500 to-blue-600 rounded-full flex items-center justify-center">
+                          <DocumentTextIcon className="w-6 h-6 text-white" />
+                        </div>
                         <div className="flex-1">
                           <h3 className="text-xl font-semibold text-white">{request.title}</h3>
+                          {request.subjudul && (
+                            <p className="text-gray-300 text-sm">{request.subjudul}</p>
+                          )}
                           <p className="text-gray-400">{request.description}</p>
                         </div>
                         <div className="flex items-center space-x-2">
@@ -287,7 +476,7 @@ export const Reimbursement: React.FC = () => {
                         </div>
                       </div>
 
-                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
                         <div className="flex items-center space-x-2">
                           <CurrencyDollarIcon className="w-5 h-5 text-cyan-400" />
                           <div>
@@ -300,40 +489,49 @@ export const Reimbursement: React.FC = () => {
                         <div className="flex items-center space-x-2">
                           <CalendarIcon className="w-5 h-5 text-cyan-400" />
                           <div>
+                            <p className="text-sm text-gray-400">Tanggal Kegiatan</p>
+                            <p className="text-white">
+                              {new Date(request.tanggal).toLocaleDateString('id-ID')}
+                            </p>
+                          </div>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                          <CalendarIcon className="w-5 h-5 text-cyan-400" />
+                          <div>
                             <p className="text-sm text-gray-400">Tanggal Ajuan</p>
                             <p className="text-white">
                               {new Date(request.submitted_at).toLocaleDateString('id-ID')}
                             </p>
                           </div>
                         </div>
-                                                 <div className="flex items-center space-x-2">
-                           <TagIcon className="w-5 h-5 text-cyan-400" />
-                           <div>
-                             <p className="text-sm text-gray-400">Jumlah Item</p>
-                             <p className="text-white">{request.items?.length || 0} item</p>
-                           </div>
-                         </div>
+                        <div className="flex items-center space-x-2">
+                          <TagIcon className="w-5 h-5 text-cyan-400" />
+                          <div>
+                            <p className="text-sm text-gray-400">Jumlah Item</p>
+                            <p className="text-white">{request.items?.length || 0} item</p>
+                          </div>
+                        </div>
                       </div>
 
-                                             {/* Items List */}
-                       <div className="space-y-2">
-                         <h4 className="text-sm font-medium text-gray-300">Detail Pengeluaran:</h4>
-                         {request.items?.map((item) => (
-                          <div key={item.id} className="flex items-center justify-between p-3 glass-effect rounded-lg border border-gray-700/50">
-                            <div className="flex-1">
-                              <p className="text-white font-medium">{item.description}</p>
-                              <div className="flex items-center space-x-4 text-sm text-gray-400">
-                                <span>{item.category}</span>
-                                <span>{new Date(item.date).toLocaleDateString('id-ID')}</span>
-                              </div>
-                            </div>
-                            <div className="text-right">
-                              <p className="text-white font-semibold">
-                                Rp {item.amount.toLocaleString('id-ID')}
-                              </p>
-                            </div>
-                          </div>
-                        ))}
+                      {/* Items List */}
+                      <div className="space-y-2">
+                        <h4 className="text-sm font-medium text-gray-300">Detail Pengeluaran:</h4>
+                        {request.items?.map((item) => (
+                         <div key={item.id} className="flex items-center justify-between p-3 glass-effect rounded-lg border border-gray-700/50">
+                           <div className="flex-1">
+                             <p className="text-white font-medium">{item.description}</p>
+                             <div className="flex items-center space-x-4 text-sm text-gray-400">
+                               <span>{item.category}</span>
+                               <span>{new Date(item.date).toLocaleDateString('id-ID')}</span>
+                             </div>
+                           </div>
+                           <div className="text-right">
+                             <p className="text-white font-semibold">
+                               Rp {item.amount.toLocaleString('id-ID')}
+                             </p>
+                           </div>
+                         </div>
+                       ))}
                       </div>
 
                       {request.notes && (
@@ -349,14 +547,39 @@ export const Reimbursement: React.FC = () => {
                       )}
                     </div>
                   </div>
+                  {/* Action buttons for each request */}
+                  <div className="flex items-center space-x-2 mt-4">
+                    {request.status === 'pending' && (
+                      <>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="border-yellow-500/50 text-yellow-300"
+                          onClick={() => handleEdit(request)}
+                        >
+                          <PencilIcon className="w-4 h-4 mr-1" />
+                          Edit
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="border-red-500/50 text-red-300"
+                          onClick={() => handleDelete(request.id)}
+                        >
+                          <TrashIcon className="w-4 h-4 mr-1" />
+                          Hapus
+                        </Button>
+                      </>
+                    )}
+                  </div>
                 </Card>
               </motion.div>
             ))
           ) : (
             <Card>
-                             <div className="text-center py-12">
-                 <DocumentTextIcon className="w-16 h-16 text-gray-500 mx-auto mb-4" />
-                 <p className="text-gray-400 mb-4">Belum ada permintaan reimbursement</p>
+              <div className="text-center py-12">
+                <DocumentTextIcon className="w-16 h-16 text-gray-500 mx-auto mb-4" />
+                <p className="text-gray-400 mb-4">Belum ada permintaan reimbursement</p>
                 <Button
                   onClick={() => setShowForm(true)}
                   className="bg-gradient-to-r from-cyan-500 to-blue-600"
@@ -374,108 +597,390 @@ export const Reimbursement: React.FC = () => {
       {showForm && (
         <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50">
           <div className="bg-slate-800 rounded-xl p-8 w-full max-w-4xl max-h-[90vh] overflow-y-auto border border-cyan-500/30">
-            <h2 className="text-xl font-bold text-cyan-300 mb-6">Ajukan Reimbursement</h2>
+            <h2 className="text-xl font-bold text-cyan-300 mb-6">
+              {editRequest ? 'Edit Reimbursement' : 'Ajukan Reimbursement'}
+            </h2>
             
             <div className="space-y-6">
               {/* Basic Info */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-300 mb-2">Tanggal Pengajuan</label>
-                  <input type="date" value={tanggal} onChange={e => setTanggal(e.target.value)} className="w-full px-4 py-2 glass-effect border border-gray-600/50 rounded-lg text-white bg-slate-700" />
+                  <label className="block text-sm font-medium text-gray-300 mb-2">Tanggal Kegiatan</label>
+                  <input 
+                    type="date" 
+                    value={editRequest ? editForm.tanggal : tanggal} 
+                    onChange={e => editRequest ? setEditForm({...editForm, tanggal: e.target.value}) : setTanggal(e.target.value)} 
+                    className="w-full px-4 py-2 glass-effect border border-gray-600/50 rounded-lg text-white bg-slate-700" 
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-300 mb-2">Tanggal Ajuan</label>
+                  <input
+                    type="date"
+                    value={new Date().toISOString().split('T')[0]}
+                    className="w-full px-4 py-2 glass-effect border border-gray-600/50 rounded-lg text-gray-500 bg-slate-800 cursor-not-allowed"
+                    disabled
+                  />
+                  <p className="text-xs text-gray-400 mt-1">Otomatis terisi dengan tanggal hari ini</p>
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-300 mb-2">Judul Pengajuan</label>
-                  <select value={judulId} onChange={e => setJudulId(e.target.value)} className="w-full px-4 py-2 glass-effect border border-gray-600/50 rounded-lg text-white bg-slate-700">
-                    <option value="">Pilih Judul</option>
-                    {judulList.map(j => <option key={j.id} value={j.id}>{j.nama}</option>)}
-                    <option value="lainnya">Lainnya</option>
-                  </select>
-                  {judulId === 'lainnya' && (
-                    <input type="text" value={judulLainnya} onChange={e => setJudulLainnya(e.target.value)} placeholder="Isi judul lainnya" className="mt-2 w-full px-4 py-2 glass-effect border border-gray-600/50 rounded-lg text-white bg-slate-700" />
+                  {editRequest ? (
+                    <div>
+                      <select 
+                        value={editForm.judulId || ''} 
+                        onChange={e => setEditForm({...editForm, judulId: e.target.value, title: e.target.value === 'lainnya' ? editForm.title : (judulList.find(j => j.id === e.target.value)?.nama || '')})} 
+                        className="w-full px-4 py-2 glass-effect border border-gray-600/50 rounded-lg text-white bg-slate-700"
+                      >
+                        <option value="">Pilih Judul</option>
+                        {judulList.map(j => <option key={j.id} value={j.id}>{j.nama}</option>)}
+                        <option value="lainnya">Lainnya</option>
+                      </select>
+                      {(editForm.judulId === 'lainnya' || (!editForm.judulId && editForm.title && !judulList.find(j => j.nama === editForm.title))) && (
+                        <input 
+                          type="text" 
+                          value={editForm.title} 
+                          onChange={e => setEditForm({...editForm, title: e.target.value})} 
+                          placeholder="Isi judul lainnya" 
+                          className="mt-2 w-full px-4 py-2 glass-effect border border-gray-600/50 rounded-lg text-white bg-slate-700" 
+                        />
+                      )}
+                    </div>
+                  ) : (
+                    <div>
+                      <select value={judulId} onChange={e => setJudulId(e.target.value)} className="w-full px-4 py-2 glass-effect border border-gray-600/50 rounded-lg text-white bg-slate-700">
+                        <option value="">Pilih Judul</option>
+                        {judulList.map(j => <option key={j.id} value={j.id}>{j.nama}</option>)}
+                        <option value="lainnya">Lainnya</option>
+                      </select>
+                      {judulId === 'lainnya' && (
+                        <input type="text" value={judulLainnya} onChange={e => setJudulLainnya(e.target.value)} placeholder="Isi judul lainnya" className="mt-2 w-full px-4 py-2 glass-effect border border-gray-600/50 rounded-lg text-white bg-slate-700" />
+                      )}
+                    </div>
                   )}
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-300 mb-2">Sub Judul Pengajuan</label>
-                  <select value={subJudulId} onChange={e => setSubJudulId(e.target.value)} className="w-full px-4 py-2 glass-effect border border-gray-600/50 rounded-lg text-white bg-slate-700">
-                    <option value="">Pilih Sub Judul</option>
-                    {subJudulList.map(s => <option key={s.id} value={s.id}>{s.nama}</option>)}
-                    <option value="lainnya">Lainnya</option>
-                  </select>
-                  {subJudulId === 'lainnya' && (
-                    <input type="text" value={subJudulLainnya} onChange={e => setSubJudulLainnya(e.target.value)} placeholder="Isi sub judul lainnya" className="mt-2 w-full px-4 py-2 glass-effect border border-gray-600/50 rounded-lg text-white bg-slate-700" />
+                  {editRequest ? (
+                    <div>
+                      <select 
+                        value={editForm.subJudulId || ''} 
+                        onChange={e => setEditForm({...editForm, subJudulId: e.target.value, subjudul: e.target.value === 'lainnya' ? editForm.subjudul : (subJudulList.find(s => s.id === e.target.value)?.nama || '')})} 
+                        className="w-full px-4 py-2 glass-effect border border-gray-600/50 rounded-lg text-white bg-slate-700"
+                      >
+                        <option value="">Pilih Sub Judul</option>
+                        {subJudulList.map(s => <option key={s.id} value={s.id}>{s.nama}</option>)}
+                        <option value="lainnya">Lainnya</option>
+                      </select>
+                      {(editForm.subJudulId === 'lainnya' || (!editForm.subJudulId && editForm.subjudul && !subJudulList.find(s => s.nama === editForm.subjudul))) && (
+                        <input 
+                          type="text" 
+                          value={editForm.subjudul} 
+                          onChange={e => setEditForm({...editForm, subjudul: e.target.value})} 
+                          placeholder="Isi sub judul lainnya" 
+                          className="mt-2 w-full px-4 py-2 glass-effect border border-gray-600/50 rounded-lg text-white bg-slate-700" 
+                        />
+                      )}
+                    </div>
+                  ) : (
+                    <div>
+                      <select value={subJudulId} onChange={e => setSubJudulId(e.target.value)} className="w-full px-4 py-2 glass-effect border border-gray-600/50 rounded-lg text-white bg-slate-700">
+                        <option value="">Pilih Sub Judul</option>
+                        {subJudulList.map(s => <option key={s.id} value={s.id}>{s.nama}</option>)}
+                        <option value="lainnya">Lainnya</option>
+                      </select>
+                      {subJudulId === 'lainnya' && (
+                        <input type="text" value={subJudulLainnya} onChange={e => setSubJudulLainnya(e.target.value)} placeholder="Isi sub judul lainnya" className="mt-2 w-full px-4 py-2 glass-effect border border-gray-600/50 rounded-lg text-white bg-slate-700" />
+                      )}
+                    </div>
                   )}
                 </div>
                 <div className="md:col-span-2">
                   <label className="block text-sm font-medium text-gray-300 mb-2">Deskripsi (Opsional)</label>
-                  <textarea value={description} onChange={e => setDescription(e.target.value)} className="w-full px-4 py-2 glass-effect border border-gray-600/50 rounded-lg text-white bg-slate-700" rows={3} placeholder="Jelaskan detail pengeluaran dan keperluan..." />
+                  <textarea 
+                    value={editRequest ? editForm.description : description} 
+                    onChange={e => editRequest ? setEditForm({...editForm, description: e.target.value}) : setDescription(e.target.value)} 
+                    className="w-full px-4 py-2 glass-effect border border-gray-600/50 rounded-lg text-white bg-slate-700" 
+                    rows={3} 
+                    placeholder="Jelaskan detail pengeluaran dan keperluan..." 
+                  />
                 </div>
-                <div className="md:col-span-2">
-                  <label className="block text-sm font-medium text-gray-300 mb-2">Upload Bukti Kwitansi (Opsional, bisa lebih dari satu)</label>
-                  <input type="file" multiple onChange={e => setBuktiFiles(Array.from(e.target.files || []))} className="w-full px-4 py-2 glass-effect border border-gray-600/50 rounded-lg text-white bg-slate-700" accept=".jpg,.jpeg,.png,.pdf" />
-                </div>
+                {!editRequest && (
+                  <div className="md:col-span-2">
+                    <label className="block text-sm font-medium text-gray-300 mb-2">Upload Bukti Kwitansi (Opsional, bisa lebih dari satu)</label>
+                    <input type="file" multiple onChange={e => setBuktiFiles(Array.from(e.target.files || []))} className="w-full px-4 py-2 glass-effect border border-gray-600/50 rounded-lg text-white bg-slate-700" accept=".jpg,.jpeg,.png,.pdf" />
+                  </div>
+                )}
               </div>
 
-              {/* Add Item Form */}
-              <div className="border border-gray-700/50 rounded-lg p-4">
-                <h3 className="text-lg font-semibold text-white mb-4">Tambah Item Pengeluaran</h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  <Input
-                    label="Deskripsi"
-                    value={newItem.description}
-                    onChange={(e) => setNewItem(prev => ({ ...prev, description: e.target.value }))}
-                    placeholder="Contoh: Grab Car"
-                  />
-                  <Input
-                    label="Jumlah (Rp)"
-                    type="number"
-                    value={newItem.amount}
-                    onChange={(e) => setNewItem(prev => ({ ...prev, amount: e.target.value }))}
-                    placeholder="50000"
-                  />
-                  <div>
-                    <label className="block text-sm font-medium text-gray-300 mb-2">Kategori</label>
-                    <select
-                      value={newItem.category}
-                      onChange={(e) => setNewItem(prev => ({ ...prev, category: e.target.value }))}
-                      className="w-full px-4 py-2 glass-effect border border-gray-600/50 rounded-lg text-white bg-slate-700 focus:outline-none focus:ring-2 focus:ring-cyan-400"
+              {/* Items management for edit */}
+              {editRequest && (
+                <div>
+                  <h3 className="text-lg font-semibold text-white mb-4">Item Pengeluaran</h3>
+                  <div className="space-y-2 mb-4">
+                    {editForm.items?.map((item: any, index: number) => (
+                      <div key={item.id} className="p-3 glass-effect rounded-lg border border-gray-700/50">
+                        {editItem?.id === item.id ? (
+                          // Edit mode
+                          <div className="space-y-3">
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                              <Input
+                                label="Deskripsi"
+                                value={editItemForm.description}
+                                onChange={(e) => setEditItemForm({...editItemForm, description: e.target.value})}
+                                placeholder="Contoh: Grab Car"
+                              />
+                              <Input
+                                label="Jumlah (Rp)"
+                                type="number"
+                                value={editItemForm.amount}
+                                onChange={(e) => setEditItemForm({...editItemForm, amount: e.target.value})}
+                                placeholder="50000"
+                              />
+                              <div>
+                                <label className="block text-sm font-medium text-gray-300 mb-2">Kategori</label>
+                                <select
+                                  value={editItemForm.category}
+                                  onChange={(e) => setEditItemForm({...editItemForm, category: e.target.value})}
+                                  className="w-full px-4 py-2 glass-effect border border-gray-600/50 rounded-lg text-white bg-slate-700 focus:outline-none focus:ring-2 focus:ring-cyan-400"
+                                >
+                                  <option value="">Pilih Kategori</option>
+                                  {categories.map(cat => (
+                                    <option key={cat} value={cat}>{cat}</option>
+                                  ))}
+                                </select>
+                              </div>
+                            </div>
+                            <div className="flex gap-2">
+                              <Button
+                                onClick={saveEditItem}
+                                className="bg-gradient-to-r from-green-500 to-teal-600"
+                                size="sm"
+                              >
+                                Simpan
+                              </Button>
+                              <Button
+                                onClick={cancelEditItem}
+                                variant="outline"
+                                className="border-gray-500/50 text-gray-300"
+                                size="sm"
+                              >
+                                Batal
+                              </Button>
+                            </div>
+                          </div>
+                        ) : (
+                          // View mode
+                          <div className="flex items-center justify-between">
+                            <div className="flex-1">
+                              <p className="text-white font-medium">{item.description}</p>
+                              <div className="flex items-center space-x-4 text-sm text-gray-400">
+                                <span>{item.category}</span>
+                                <span>{new Date(item.date).toLocaleDateString('id-ID')}</span>
+                              </div>
+                            </div>
+                            <div className="text-right mr-4">
+                              <p className="text-white font-semibold">
+                                Rp {item.amount.toLocaleString('id-ID')}
+                              </p>
+                            </div>
+                            <div className="flex gap-2">
+                              <button
+                                onClick={() => startEditItem(item)}
+                                className="text-yellow-400 hover:text-yellow-300"
+                                title="Edit"
+                              >
+                                <PencilIcon className="w-4 h-4" />
+                              </button>
+                              <button
+                                onClick={() => removeEditItem(item.id)}
+                                className="text-red-400 hover:text-red-300"
+                                title="Hapus"
+                              >
+                                <TrashIcon className="w-4 h-4" />
+                              </button>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                  
+                  {/* Add new item form for edit */}
+                  <div className="border border-gray-700/50 rounded-lg p-4">
+                    <h4 className="text-md font-semibold text-white mb-4">Tambah Item Baru</h4>
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                      <Input
+                        label="Deskripsi"
+                        value={newItem.description}
+                        onChange={(e) => setNewItem(prev => ({ ...prev, description: e.target.value }))}
+                        placeholder="Contoh: Grab Car"
+                      />
+                      <Input
+                        label="Jumlah (Rp)"
+                        type="number"
+                        value={newItem.amount}
+                        onChange={(e) => setNewItem(prev => ({ ...prev, amount: e.target.value }))}
+                        placeholder="50000"
+                      />
+                      <div>
+                        <label className="block text-sm font-medium text-gray-300 mb-2">Kategori</label>
+                        <select
+                          value={newItem.category}
+                          onChange={(e) => setNewItem(prev => ({ ...prev, category: e.target.value }))}
+                          className="w-full px-4 py-2 glass-effect border border-gray-600/50 rounded-lg text-white bg-slate-700 focus:outline-none focus:ring-2 focus:ring-cyan-400"
+                        >
+                          <option value="">Pilih Kategori</option>
+                          {categories.map(cat => (
+                            <option key={cat} value={cat}>{cat}</option>
+                          ))}
+                        </select>
+                      </div>
+                    </div>
+                    <Button
+                      onClick={addEditItem}
+                      className="mt-4 bg-gradient-to-r from-green-500 to-teal-600"
+                      size="sm"
                     >
-                      <option value="">Pilih Kategori</option>
-                      {categories.map(cat => (
-                        <option key={cat} value={cat}>{cat}</option>
-                      ))}
-                    </select>
+                      <PlusIcon className="w-4 h-4 mr-2" />
+                      Tambah Item
+                    </Button>
                   </div>
                 </div>
-                <Button
-                  onClick={addItem}
-                  className="mt-4 bg-gradient-to-r from-green-500 to-teal-600"
-                  size="sm"
-                >
-                  <PlusIcon className="w-4 h-4 mr-2" />
-                  Tambah Item
-                </Button>
-              </div>
+              )}
 
-              {/* Items List */}
-              {items.length > 0 && (
+              {/* Add Item Form for new request */}
+              {!editRequest && (
+                <div className="border border-gray-700/50 rounded-lg p-4">
+                  <h3 className="text-lg font-semibold text-white mb-4">Tambah Item Pengeluaran</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    <Input
+                      label="Deskripsi"
+                      value={newItem.description}
+                      onChange={(e) => setNewItem(prev => ({ ...prev, description: e.target.value }))}
+                      placeholder="Contoh: Grab Car"
+                    />
+                    <Input
+                      label="Jumlah (Rp)"
+                      type="number"
+                      value={newItem.amount}
+                      onChange={(e) => setNewItem(prev => ({ ...prev, amount: e.target.value }))}
+                      placeholder="50000"
+                    />
+                    <div>
+                      <label className="block text-sm font-medium text-gray-300 mb-2">Kategori</label>
+                      <select
+                        value={newItem.category}
+                        onChange={(e) => setNewItem(prev => ({ ...prev, category: e.target.value }))}
+                        className="w-full px-4 py-2 glass-effect border border-gray-600/50 rounded-lg text-white bg-slate-700 focus:outline-none focus:ring-2 focus:ring-cyan-400"
+                      >
+                        <option value="">Pilih Kategori</option>
+                        {categories.map(cat => (
+                          <option key={cat} value={cat}>{cat}</option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+                  <Button
+                    onClick={addItem}
+                    className="mt-4 bg-gradient-to-r from-green-500 to-teal-600"
+                    size="sm"
+                  >
+                    <PlusIcon className="w-4 h-4 mr-2" />
+                    Tambah Item
+                  </Button>
+                </div>
+              )}
+
+              {/* Items List for new request */}
+              {!editRequest && items.length > 0 && (
                 <div className="border border-gray-700/50 rounded-lg p-4">
                   <h3 className="text-lg font-semibold text-white mb-4">Daftar Pengeluaran</h3>
                   <div className="space-y-2">
                     {items.map((item) => (
-                      <div key={item.id} className="flex items-center justify-between p-3 glass-effect rounded-lg border border-gray-700/50">
-                        <div className="flex-1">
-                          <p className="text-white font-medium">{item.description}</p>
-                          <div className="flex items-center space-x-4 text-sm text-gray-400">
-                            <span>{item.category}</span>
-                            <span>{new Date(item.date).toLocaleDateString('id-ID')}</span>
-                            {/* Tidak ada file kwitansi per item */}
+                      <div key={item.id} className="p-3 glass-effect rounded-lg border border-gray-700/50">
+                        {editItem?.id === item.id ? (
+                          // Edit mode
+                          <div className="space-y-3">
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                              <Input
+                                label="Deskripsi"
+                                value={editItemForm.description}
+                                onChange={(e) => setEditItemForm({...editItemForm, description: e.target.value})}
+                                placeholder="Contoh: Grab Car"
+                              />
+                              <Input
+                                label="Jumlah (Rp)"
+                                type="number"
+                                value={editItemForm.amount}
+                                onChange={(e) => setEditItemForm({...editItemForm, amount: e.target.value})}
+                                placeholder="50000"
+                              />
+                              <div>
+                                <label className="block text-sm font-medium text-gray-300 mb-2">Kategori</label>
+                                <select
+                                  value={editItemForm.category}
+                                  onChange={(e) => setEditItemForm({...editItemForm, category: e.target.value})}
+                                  className="w-full px-4 py-2 glass-effect border border-gray-600/50 rounded-lg text-white bg-slate-700 focus:outline-none focus:ring-2 focus:ring-cyan-400"
+                                >
+                                  <option value="">Pilih Kategori</option>
+                                  {categories.map(cat => (
+                                    <option key={cat} value={cat}>{cat}</option>
+                                  ))}
+                                </select>
+                              </div>
+                            </div>
+                            <div className="flex gap-2">
+                              <Button
+                                onClick={saveEditItem}
+                                className="bg-gradient-to-r from-green-500 to-teal-600"
+                                size="sm"
+                              >
+                                Simpan
+                              </Button>
+                              <Button
+                                onClick={cancelEditItem}
+                                variant="outline"
+                                className="border-gray-500/50 text-gray-300"
+                                size="sm"
+                              >
+                                Batal
+                              </Button>
+                            </div>
                           </div>
-                        </div>
-                        <div className="text-right">
-                          <p className="text-white font-semibold">
-                            Rp {item.amount.toLocaleString('id-ID')}
-                          </p>
-                        </div>
+                        ) : (
+                          // View mode
+                          <div className="flex items-center justify-between">
+                            <div className="flex-1">
+                              <p className="text-white font-medium">{item.description}</p>
+                              <div className="flex items-center space-x-4 text-sm text-gray-400">
+                                <span>{item.category}</span>
+                                <span>{new Date(item.date).toLocaleDateString('id-ID')}</span>
+                              </div>
+                            </div>
+                            <div className="text-right mr-4">
+                              <p className="text-white font-semibold">
+                                Rp {item.amount.toLocaleString('id-ID')}
+                              </p>
+                            </div>
+                            <div className="flex gap-2">
+                              <button
+                                onClick={() => startEditItem(item)}
+                                className="text-yellow-400 hover:text-yellow-300"
+                                title="Edit"
+                              >
+                                <PencilIcon className="w-4 h-4" />
+                              </button>
+                              <button
+                                onClick={() => removeEditItem(item.id)}
+                                className="text-red-400 hover:text-red-300"
+                                title="Hapus"
+                              >
+                                <TrashIcon className="w-4 h-4" />
+                              </button>
+                            </div>
+                          </div>
+                        )}
                       </div>
                     ))}
                   </div>
@@ -491,17 +996,20 @@ export const Reimbursement: React.FC = () => {
             <div className="flex gap-2 mt-6 justify-end">
               <Button 
                 variant="outline" 
-                onClick={() => setShowForm(false)} 
+                onClick={() => {
+                  setShowForm(false);
+                  resetForm();
+                }} 
                 className="text-gray-300"
               >
                 Batal
               </Button>
               <Button 
-                onClick={submitRequest}
+                onClick={editRequest ? handleEditSave : submitRequest}
                 className="bg-gradient-to-r from-cyan-500 to-blue-600"
                 disabled={submitting}
               >
-                {submitting ? 'Mengirim...' : 'Ajukan Reimbursement'}
+                {submitting ? 'Mengirim...' : (editRequest ? 'Update Reimbursement' : 'Ajukan Reimbursement')}
               </Button>
             </div>
           </div>

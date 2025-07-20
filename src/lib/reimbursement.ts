@@ -1,4 +1,4 @@
-import { supabase } from './supabase';
+import { supabase, supabaseAdmin } from './supabase';
 import { User } from '../types';
 
 // =====================================================
@@ -67,6 +67,8 @@ export interface ReimbursementRequest {
   id: string;
   user_id: string;
   title: string;
+  subjudul: string;
+  tanggal: string;
   description: string;
   total_amount: number;
   status: 'pending' | 'approved' | 'rejected' | 'paid';
@@ -256,6 +258,113 @@ export const updateReimbursementRequest = async (
 
     if (error) throw error;
     return data;
+  } catch (error) {
+    console.error('Error updating reimbursement request:', error);
+    throw error;
+  }
+};
+
+export const updateReimbursementRequestByUser = async (
+  requestId: string,
+  update: {
+    title: string;
+    subjudul: string;
+    tanggal: string;
+    description: string;
+    items: Omit<ReimbursementItem, 'id' | 'request_id' | 'created_at'>[];
+  },
+  user: User
+): Promise<ReimbursementRequest> => {
+  try {
+    console.log('Updating reimbursement request:', requestId, update);
+    console.log('User:', user);
+    
+    // Calculate total amount
+    const totalAmount = update.items.reduce((sum, item) => sum + item.amount, 0);
+    console.log('Total amount:', totalAmount);
+
+    // Update reimbursement request
+    const { data: reimbursementData, error: reimbursementError } = await supabaseAdmin
+      .from('reimbursement_requests')
+      .update({
+        title: update.title,
+        subjudul: update.subjudul,
+        tanggal: update.tanggal,
+        description: update.description,
+        total_amount: totalAmount,
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', requestId)
+      .eq('user_id', user.id) // Only allow user to update their own request
+      .eq('status', 'pending') // Only allow update if still pending
+      .select()
+      .single();
+
+    if (reimbursementError) {
+      console.error('Database error updating request:', reimbursementError);
+      console.error('Error details:', {
+        code: reimbursementError.code,
+        message: reimbursementError.message,
+        details: reimbursementError.details,
+        hint: reimbursementError.hint
+      });
+      throw reimbursementError;
+    }
+
+    console.log('Request updated successfully:', reimbursementData);
+
+    // Delete existing items
+    const { error: deleteItemsError } = await supabaseAdmin
+      .from('reimbursement_items')
+      .delete()
+      .eq('request_id', requestId);
+
+    if (deleteItemsError) {
+      console.error('Database error deleting items:', deleteItemsError);
+      console.error('Delete error details:', {
+        code: deleteItemsError.code,
+        message: deleteItemsError.message,
+        details: deleteItemsError.details,
+        hint: deleteItemsError.hint
+      });
+      throw deleteItemsError;
+    }
+
+    console.log('Existing items deleted successfully');
+
+    // Insert new items - hanya field yang ada di schema
+    const itemsWithRequestId = update.items.map(item => ({
+      request_id: requestId,
+      description: item.description,
+      amount: item.amount,
+      category: item.category,
+      date: item.date,
+      receipt_file_path: item.receipt_file_path || null,
+      receipt_file_name: item.receipt_file_name || null
+    }));
+
+    console.log('Inserting items:', itemsWithRequestId);
+
+    const { data: insertedItems, error: itemsError } = await supabaseAdmin
+      .from('reimbursement_items')
+      .insert(itemsWithRequestId)
+      .select();
+
+    if (itemsError) {
+      console.error('Database error inserting items:', itemsError);
+      console.error('Insert error details:', {
+        code: itemsError.code,
+        message: itemsError.message,
+        details: itemsError.details,
+        hint: itemsError.hint
+      });
+      throw itemsError;
+    }
+
+    console.log('Items inserted successfully:', insertedItems);
+
+    // Return the updated request with items
+    return await getReimbursementRequestById(requestId);
   } catch (error) {
     console.error('Error updating reimbursement request:', error);
     throw error;

@@ -44,3 +44,31 @@ export interface AuthUser {
   user: User;
   token: string;
 }
+
+export interface Notulensi {
+  id: string;
+  user_id: string;
+  judul_id: string;
+  subjudul_id: string;
+  sesi: string;
+  tanggal: string; // ISO date
+  tempat: string;
+  catatan: string; // HTML rich text
+  created_at: string;
+  updated_at: string;
+  created_by?: string;
+  edited_by?: string[];
+  // Relations
+  user?: User;
+  judul?: Judul;
+  subjudul?: SubJudul;
+  pihak?: NotulensiPihak[];
+}
+
+export interface NotulensiPihak {
+  id: string;
+  notulensi_id: string;
+  nama_pihak: string;
+  perwakilan: string[];
+  created_at: string;
+}

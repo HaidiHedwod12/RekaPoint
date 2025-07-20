@@ -12,7 +12,8 @@ import {
   BuildingOfficeIcon,
   UserIcon,
   CurrencyDollarIcon,
-  StarIcon
+  StarIcon,
+  DocumentTextIcon
 } from '@heroicons/react/24/outline';
 import { MenuCard } from './MenuCard';
 import { useAuth } from '../../contexts/AuthContext';
@@ -103,6 +104,13 @@ export const AdminDashboard: React.FC = () => {
       icon: StarIcon,
       iconBg: 'from-yellow-500 to-orange-600',
       onClick: () => navigate('/test-supabase')
+    },
+    {
+      title: 'Notulensi',
+      description: 'Lihat dan kelola hasil notulensi kegiatan',
+      icon: DocumentTextIcon,
+      iconBg: 'from-blue-500 to-cyan-600',
+      onClick: () => navigate('/admin/notulensi')
     }
   ];
 

@@ -809,3 +809,115 @@ export const getUserWithMonthlySettings = async (userId: string, month: number, 
     monthly_can_view_poin: monthlySettings.can_view_poin
   };
 };
+
+// =====================
+// NOTULENSI MANAGEMENT
+// =====================
+import { Notulensi, NotulensiPihak } from '../types';
+
+// Get all notulensi (admin) atau notulensi milik user (karyawan)
+export const getAllNotulensi = async (userId?: string): Promise<Notulensi[]> => {
+  let query = supabaseAdmin
+    .from('notulensi')
+    .select(`*, user:users(*), judul:judul(*), subjudul:subjudul(*), pihak:notulensi_pihak(*)`)
+    .order('tanggal', { ascending: false });
+  if (userId) {
+    query = query.eq('user_id', userId);
+  }
+  const { data, error } = await query;
+  if (error) throw error;
+  return data || [];
+};
+
+export const getNotulensiById = async (id: string): Promise<Notulensi | null> => {
+  const { data, error } = await supabase
+    .from('notulensi')
+    .select(`*, user:users(*), judul:judul(*), subjudul:subjudul(*), pihak:notulensi_pihak(*)`)
+    .eq('id', id)
+    .single();
+  if (error) throw error;
+  return data;
+};
+
+export const createNotulensi = async (notulensi: Omit<Notulensi, 'id' | 'created_at' | 'updated_at' | 'user' | 'judul' | 'subjudul' | 'pihak'>, pihak: Omit<NotulensiPihak, 'id' | 'notulensi_id' | 'created_at'>[], userId: string): Promise<Notulensi> => {
+  // Insert notulensi dengan created_by
+  const { data: nData, error: nError } = await supabase
+    .from('notulensi')
+    .insert([{ ...notulensi, created_by: userId }])
+    .select()
+    .single();
+  if (nError) throw nError;
+  // Insert pihak
+  const pihakData = pihak.map(p => ({ ...p, notulensi_id: nData.id }));
+  if (pihakData.length > 0) {
+    const { error: pError } = await supabase
+      .from('notulensi_pihak')
+      .insert(pihakData);
+    if (pError) throw pError;
+  }
+  // Return notulensi lengkap
+  return await getNotulensiById(nData.id) as Notulensi;
+};
+
+export const updateNotulensi = async (id: string, notulensi: Partial<Omit<Notulensi, 'id' | 'created_at' | 'updated_at' | 'user' | 'judul' | 'subjudul' | 'pihak'>>, pihak: Omit<NotulensiPihak, 'id' | 'notulensi_id' | 'created_at'>[], userId: string): Promise<Notulensi> => {
+  // Ambil notulensi lama
+  const old = await getNotulensiById(id);
+  let editedBy: string[] = Array.isArray(old?.edited_by) ? [...old.edited_by] : [];
+  if (userId && !editedBy.includes(userId)) {
+    editedBy.push(userId);
+  }
+  // Jangan update created_by!
+  const { error: nError } = await supabase
+    .from('notulensi')
+    .update({ ...notulensi, edited_by: editedBy })
+    .eq('id', id);
+  if (nError) throw nError;
+  // Hapus pihak lama
+  await supabase.from('notulensi_pihak').delete().eq('notulensi_id', id);
+  // Insert pihak baru
+  const pihakData = pihak.map(p => ({ ...p, notulensi_id: id }));
+  if (pihakData.length > 0) {
+    const { error: pError } = await supabase
+      .from('notulensi_pihak')
+      .insert(pihakData);
+    if (pError) throw pError;
+  }
+  // Return notulensi lengkap
+  return await getNotulensiById(id) as Notulensi;
+};
+
+export const deleteNotulensi = async (id: string): Promise<void> => {
+  // Hapus pihak dulu (cascade, tapi untuk jaga-jaga)
+  await supabase.from('notulensi_pihak').delete().eq('notulensi_id', id);
+  // Hapus notulensi
+  const { error } = await supabase.from('notulensi').delete().eq('id', id);
+  if (error) throw error;
+};
+
+// =====================
+// NOTULENSI SESSIONS MANUAL
+// =====================
+export const getManualSessionsBySubJudul = async (subjudul_id: string): Promise<string[]> => {
+  const { data, error } = await supabase
+    .from('notulensi_sessions_manual')
+    .select('sesi')
+    .eq('subjudul_id', subjudul_id)
+    .order('created_at');
+  if (error) throw error;
+  return (data || []).map((row: any) => row.sesi);
+};
+
+export const addManualSession = async (subjudul_id: string, sesi: string): Promise<void> => {
+  const { error } = await supabase
+    .from('notulensi_sessions_manual')
+    .insert([{ subjudul_id, sesi }]);
+  if (error) throw error;
+};
+
+export const deleteManualSession = async (id: string): Promise<void> => {
+  const { error } = await supabase
+    .from('notulensi_sessions_manual')
+    .delete()
+    .eq('id', id);
+  if (error) throw error;
+};
