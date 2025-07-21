@@ -22,6 +22,35 @@ const SESSIONS = [
   'Lainnya'
 ];
 
+// Definisikan tipe untuk state form
+interface NotulensiFormState {
+  judulId: string;
+  subJudulId: string;
+  sesi: string;
+  sesiLainnya: string;
+  tanggal: string;
+  tempat: string;
+  catatan: string;
+  pihak: { nama_pihak: string; perwakilan: string[] }[];
+  pihakInput: string;
+  perwakilanInput: string;
+  perwakilanList: string[];
+}
+
+const defaultFormState: NotulensiFormState = {
+  judulId: '',
+  subJudulId: '',
+  sesi: 'Paparan Pendahuluan',
+  sesiLainnya: '',
+  tanggal: '',
+  tempat: '',
+  catatan: '',
+  pihak: [],
+  pihakInput: '',
+  perwakilanInput: '',
+  perwakilanList: [],
+};
+
 // Helper di luar komponen untuk mengambil state awal dari localStorage
 const getInitialState = () => {
   const draft = localStorage.getItem('notulensi_draft');
@@ -63,6 +92,7 @@ const Notulensi: React.FC = () => {
   const location = useLocation();
 
   const isInitialMount = useRef(true);
+  const prevSubJudulId = useRef(defaultFormState.subJudulId);
   const [initialState] = useState(getInitialState);
   
   const [tab, setTab] = useState<'buat' | 'riwayat'>(initialState.tab);
@@ -71,23 +101,17 @@ const Notulensi: React.FC = () => {
   const [showForm, setShowForm] = useState(initialState.showForm);
   const [selected, setSelected] = useState<Notulensi | null>(null);
   const [editData, setEditData] = useState<Notulensi | null>(initialState.editData);
+  const [currentNotulensiId, setCurrentNotulensiId] = useState<string | null>(null);
+  const [showSuccess, setShowSuccess] = useState(false);
 
-  // Form state diinisialisasi dari localStorage
-  const [judulList, setJudulList] = useState<Judul[]>([]);
-  const [subJudulList, setSubJudulList] = useState<SubJudul[]>([]);
-  const [judulId, setJudulId] = useState(initialState.judulId);
-  const [subJudulId, setSubJudulId] = useState(initialState.subJudulId);
-  const [sesi, setSesi] = useState(initialState.sesi);
-  const [sesiLainnya, setSesiLainnya] = useState(initialState.sesiLainnya);
-  const [tanggal, setTanggal] = useState(initialState.tanggal);
-  const [tempat, setTempat] = useState(initialState.tempat);
-  const [catatan, setCatatan] = useState(initialState.catatan);
-  const [pihak, setPihak] = useState<{ nama_pihak: string; perwakilan: string[] }[]>(initialState.pihak);
-  const [pihakInput, setPihakInput] = useState(initialState.pihakInput);
-  const [perwakilanInput, setPerwakilanInput] = useState(initialState.perwakilanInput);
-  const [perwakilanList, setPerwakilanList] = useState<string[]>(initialState.perwakilanList);
-  const [saving, setSaving] = useState(false);
-  const [error, setError] = useState('');
+  // Gabungkan semua state form menjadi satu
+  const [formState, setFormState] = useState<NotulensiFormState>(() => {
+    const draft = localStorage.getItem('notulensi_form_draft');
+    return draft ? JSON.parse(draft) : defaultFormState;
+  });
+  
+  // Gantikan semua state individu dengan properti dari formState
+  const { judulId, subJudulId, sesi, sesiLainnya, tanggal, tempat, catatan, pihak, pihakInput, perwakilanInput, perwakilanList } = formState;
 
   // State for new UI flow
   const [selectedJudul, setSelectedJudul] = useState<Judul | null>(initialState.selectedJudul);
@@ -107,11 +131,26 @@ const Notulensi: React.FC = () => {
     search: ''
   });
 
+  const [judulList, setJudulList] = useState<Judul[]>([]);
+  const [subJudulList, setSubJudulList] = useState<SubJudul[]>([]);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState('');
+  
   useEffect(() => {
     if (user) fetchNotulensi();
     getAllJudul().then(setJudulList);
     getAllUsers().then(setUsers);
   }, [user]);
+
+  const resetForm = () => {
+    localStorage.removeItem('notulensi_form_draft');
+    setFormState(defaultFormState);
+    setSelectedJudul(null);
+    setSelectedSubJudul(null);
+    setSelectedSesi('');
+    setEditData(null);
+    setError('');
+  };
 
   // Handle edit data from admin
   useEffect(() => {
@@ -125,24 +164,27 @@ const Notulensi: React.FC = () => {
       const judul = judulList.find(j => j.id === editDataFromAdmin.judul_id);
       if (judul) {
         setSelectedJudul(judul);
-        setJudulId(judul.id);
+        setFormState(prev => ({ ...prev, judulId: judul.id }));
         
         // Load sub judul list for this judul
         getSubJudulByJudul(judul.id).then(subJudulList => {
           const subJudul = subJudulList.find(s => s.id === editDataFromAdmin.subjudul_id);
           if (subJudul) {
             setSelectedSubJudul(subJudul);
-            setSubJudulId(subJudul.id);
+            setFormState(prev => ({ ...prev, subJudulId: subJudul.id }));
           }
         });
       }
       
       // Set other fields immediately
-      setSelectedSesi(editDataFromAdmin.sesi);
-      setTanggal(editDataFromAdmin.tanggal);
-      setTempat(editDataFromAdmin.tempat);
-      setCatatan(editDataFromAdmin.catatan);
-      setPihak(editDataFromAdmin.pihak?.map((p: any) => ({ nama_pihak: p.nama_pihak, perwakilan: p.perwakilan })) || []);
+      setFormState(prev => ({
+        ...prev,
+        sesi: editDataFromAdmin.sesi,
+        tanggal: editDataFromAdmin.tanggal,
+        tempat: editDataFromAdmin.tempat,
+        catatan: editDataFromAdmin.catatan,
+        pihak: editDataFromAdmin.pihak?.map((p: any) => ({ nama_pihak: p.nama_pihak, perwakilan: p.perwakilan })) || [],
+      }));
       
       // Clear the state to prevent re-triggering
       navigate(location.pathname, { replace: true });
@@ -160,22 +202,28 @@ const Notulensi: React.FC = () => {
 
   useEffect(() => {
     if (selectedSubJudul) {
-      setSesi(SESSIONS.includes(selectedSesi) ? selectedSesi : 'Lainnya');
-      setSesiLainnya(SESSIONS.includes(selectedSesi) ? '' : selectedSesi);
+      setFormState(prev => ({
+        ...prev,
+        sesi: SESSIONS.includes(selectedSesi) ? selectedSesi : 'Lainnya',
+        sesiLainnya: SESSIONS.includes(selectedSesi) ? '' : selectedSesi,
+      }));
     }
   }, [selectedSubJudul, selectedSesi]);
 
   useEffect(() => {
     if (selectedSubJudul && !editData) {
-      setSesi('');
-      setSesiLainnya('');
-      setTanggal('');
-      setTempat('');
-      setCatatan('');
-      setPihak([]);
-      setPihakInput('');
-      setPerwakilanInput('');
-      setPerwakilanList([]);
+      setFormState(prev => ({
+        ...prev,
+        sesi: '',
+        sesiLainnya: '',
+        tanggal: '',
+        tempat: '',
+        catatan: '',
+        pihak: [],
+        pihakInput: '',
+        perwakilanInput: '',
+        perwakilanList: [],
+      }));
       setError('');
     }
   }, [selectedSubJudul, editData]);
@@ -184,18 +232,14 @@ const Notulensi: React.FC = () => {
     if (editData) {
       // Set sesi
       if (SESSIONS.includes(editData.sesi)) {
-        setSesi(editData.sesi);
-        setSesiLainnya('');
+        setFormState(prev => ({ ...prev, sesi: editData.sesi }));
       } else {
-        setSesi('Lainnya');
-        setSesiLainnya(editData.sesi);
+        setFormState(prev => ({ ...prev, sesi: 'Lainnya', sesiLainnya: editData.sesi }));
       }
       
       // Set other fields
-      setTanggal(editData.tanggal);
-      setTempat(editData.tempat);
-      setCatatan(editData.catatan);
-      setPihak(editData.pihak?.map(p => ({ nama_pihak: p.nama_pihak, perwakilan: p.perwakilan })) || []);
+      setFormState(prev => ({ ...prev, tanggal: editData.tanggal, tempat: editData.tempat, catatan: editData.catatan }));
+      setFormState(prev => ({ ...prev, pihak: editData.pihak?.map(p => ({ nama_pihak: p.nama_pihak, perwakilan: p.perwakilan })) || [] }));
     }
   }, [editData]);
 
@@ -241,43 +285,47 @@ const Notulensi: React.FC = () => {
 
   // Hapus useEffect yang lama untuk restore draft
 
-  const resetForm = () => {
-    localStorage.removeItem('notulensi_draft');
-    setJudulId('');
-    setSubJudulId('');
-    setSesi('Paparan Pendahuluan');
-    setSesiLainnya('');
-    setTanggal('');
-    setTempat('');
-    setCatatan('');
-    setPihak([]);
-    setPihakInput('');
-    setPerwakilanInput('');
-    setPerwakilanList([]);
-    setEditData(null);
-    setError('');
+  // Update handler untuk menggunakan setFormState
+  const handleFormChange = (field: keyof NotulensiFormState, value: any) => {
+    setFormState(prev => ({ ...prev, [field]: value }));
+  };
+  
+  const handleCatatanChange = (content: string) => {
+    handleFormChange('catatan', content);
   };
 
   const handleAddPihak = () => {
     if (!pihakInput || perwakilanList.length === 0) return;
-    setPihak([...pihak, { nama_pihak: pihakInput, perwakilan: perwakilanList }]);
-    setPihakInput('');
-    setPerwakilanInput('');
-    setPerwakilanList([]);
+    setFormState(prev => ({
+      ...prev,
+      pihak: [...prev.pihak, { nama_pihak: prev.pihakInput, perwakilan: prev.perwakilanList }],
+      pihakInput: '',
+      perwakilanInput: '',
+      perwakilanList: [],
+    }));
   };
 
   const handleAddPerwakilan = () => {
     if (!perwakilanInput) return;
-    setPerwakilanList([...perwakilanList, perwakilanInput]);
-    setPerwakilanInput('');
+    setFormState(prev => ({
+      ...prev,
+      perwakilanList: [...prev.perwakilanList, prev.perwakilanInput],
+      perwakilanInput: '',
+    }));
   };
 
   const handleRemovePihak = (idx: number) => {
-    setPihak(pihak.filter((_, i) => i !== idx));
+    setFormState(prev => ({
+      ...prev,
+      pihak: prev.pihak.filter((_, i) => i !== idx),
+    }));
   };
 
   const handleRemovePerwakilan = (idx: number) => {
-    setPerwakilanList(perwakilanList.filter((_, i) => i !== idx));
+    setFormState(prev => ({
+      ...prev,
+      perwakilanList: prev.perwakilanList.filter((_, i) => i !== idx),
+    }));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -299,41 +347,43 @@ const Notulensi: React.FC = () => {
         tempat,
         catatan
       };
-      if (editData) {
-        await updateNotulensi(editData.id, notulensiData, pihak, user.id);
+      
+      let notulensiIdToUpdate = editData?.id || currentNotulensiId;
+
+      if (notulensiIdToUpdate) {
+        // Update notulensi yang sudah ada
+        await updateNotulensi(notulensiIdToUpdate, notulensiData, pihak, user.id);
       } else {
-        await createNotulensi(notulensiData, pihak, user.id);
+        // Buat notulensi baru
+        const newNotulensi = await createNotulensi(notulensiData, pihak, user.id);
+        setCurrentNotulensiId(newNotulensi.id); // Simpan ID untuk update selanjutnya
+        setEditData(newNotulensi); // Anggap ini mode edit sekarang
       }
-      setEditData(null);
-      setShowForm(false);
-      resetForm();
-      await fetchNotulensi();
+      
+      setShowSuccess(true);
+      setTimeout(() => setShowSuccess(false), 2000); // Sembunyikan notif setelah 2 detik
+      
+      await fetchNotulensi(); // Refresh riwayat di background
     } catch (e: any) {
-      // Setelah error, fetch ulang data dan cek hasilnya langsung
-      const latest = await getAllNotulensi(user.id);
-      const found = latest.find(n =>
-        n.judul_id === selectedJudul.id &&
-        n.subjudul_id === selectedSubJudul.id &&
-        n.sesi === selectedSesi &&
-        n.tanggal === tanggal &&
-        n.tempat === tempat
-      );
-      if (found) {
-        setError('');
-        setShowForm(false);
-        resetForm();
-        setNotulensi(latest); // update state agar riwayat langsung muncul
-      } else {
-        setError('Gagal menyimpan notulensi');
-      }
+      setError('Gagal menyimpan notulensi');
     }
     setSaving(false);
+  };
+  
+  const handleSelesai = () => {
+    resetForm(); // Hapus draf dan reset semua state
+    setCurrentNotulensiId(null);
+    setShowForm(false);
+    // Kembali ke langkah pilih judul/subjudul (dengan mereset state pilihan)
+    setSelectedJudul(null);
+    setSelectedSubJudul(null);
+    setSelectedSesi('');
   };
 
   const handleAddManualSession = async () => {
     if (!selectedSubJudul || !sesiLainnya.trim()) return;
     await addManualSession(selectedSubJudul.id, sesiLainnya.trim());
-    setSesiLainnya('');
+    setFormState(prev => ({ ...prev, sesiLainnya: '' }));
     const sessions = await getManualSessionsBySubJudul(selectedSubJudul.id);
     setManualSessions(sessions);
   };
@@ -426,13 +476,7 @@ const Notulensi: React.FC = () => {
     setSelectedJudul(null);
     setSelectedSubJudul(null);
     setSelectedSesi('');
-    setTanggal('');
-    setTempat('');
-    setCatatan('');
-    setPihak([]);
-    setPerwakilanList([]);
-    setPihakInput('');
-    setPerwakilanInput('');
+    setFormState(prev => ({ ...prev, tanggal: '', tempat: '', catatan: '', pihak: [], pihakInput: '', perwakilanInput: '', perwakilanList: [] }));
     setEditData(null);
   };
   
@@ -444,6 +488,38 @@ const Notulensi: React.FC = () => {
   const handleBackToSesi = () => {
     setSelectedSesi('');
   };
+
+  // Ganti useEffect yang mereset form
+  useEffect(() => {
+    // Abaikan saat mount pertama kali
+    if (isInitialMount.current) {
+      isInitialMount.current = false;
+      return;
+    }
+    
+    // Hanya reset form jika subJudulId benar-benar berubah (bukan saat refresh)
+    if (formState.subJudulId !== prevSubJudulId.current) {
+      if (formState.subJudulId && !editData) {
+        setFormState(prev => ({
+          ...prev,
+          sesi: '',
+          sesiLainnya: '',
+          tanggal: '',
+          tempat: '',
+          catatan: '',
+          pihak: [],
+          pihakInput: '',
+          perwakilanInput: '',
+          perwakilanList: [],
+        }));
+        setError('');
+      }
+    }
+    
+    // Update ref dengan nilai subJudulId saat ini
+    prevSubJudulId.current = formState.subJudulId;
+    
+  }, [formState.subJudulId, editData]);
 
   return (
     <div className="min-h-screen py-8 px-4 max-w-6xl mx-auto">
@@ -487,17 +563,17 @@ const Notulensi: React.FC = () => {
                 </div>
                 <div>
                   <label className="block text-gray-300 mb-1">Tanggal</label>
-                  <input type="date" value={tanggal} onChange={e=>setTanggal(e.target.value)} className="w-full px-4 py-2 rounded bg-slate-700 text-gray-200 text-lg" required />
+                  <input type="date" value={tanggal} onChange={e=>handleFormChange('tanggal', e.target.value)} className="w-full px-4 py-2 rounded bg-slate-700 text-gray-200 text-lg" required />
                 </div>
                 <div className="md:col-span-2">
                   <label className="block text-gray-300 mb-1">Tempat</label>
-                  <input type="text" value={tempat} onChange={e=>setTempat(e.target.value)} className="w-full px-4 py-2 rounded bg-slate-700 text-gray-200 text-lg" required />
+                  <input type="text" value={tempat} onChange={e=>handleFormChange('tempat', e.target.value)} className="w-full px-4 py-2 rounded bg-slate-700 text-gray-200 text-lg" required />
                 </div>
                 <div className="md:col-span-2">
                   <label className="block text-gray-300 mb-1">Pihak & Perwakilan</label>
                   <div className="flex flex-col md:flex-row gap-2 mb-2">
-                    <input type="text" placeholder="Nama Pihak" value={pihakInput} onChange={e=>setPihakInput(e.target.value)} className="px-4 py-2 rounded bg-slate-700 text-gray-200 text-lg flex-1" />
-                    <input type="text" placeholder="Perwakilan (tekan Enter)" value={perwakilanInput} onChange={e=>setPerwakilanInput(e.target.value)} onKeyDown={e=>{if(e.key==='Enter'){e.preventDefault();handleAddPerwakilan();}}} className="px-4 py-2 rounded bg-slate-700 text-gray-200 text-lg flex-1" />
+                    <input type="text" placeholder="Nama Pihak" value={pihakInput} onChange={e=>handleFormChange('pihakInput', e.target.value)} className="px-4 py-2 rounded bg-slate-700 text-gray-200 text-lg flex-1" />
+                    <input type="text" placeholder="Perwakilan (tekan Enter)" value={perwakilanInput} onChange={e=>handleFormChange('perwakilanInput', e.target.value)} onKeyDown={e=>{if(e.key==='Enter'){e.preventDefault();handleAddPerwakilan();}}} className="px-4 py-2 rounded bg-slate-700 text-gray-200 text-lg flex-1" />
                     <button type="button" className="bg-cyan-600 px-4 py-2 rounded text-white font-semibold" onClick={handleAddPihak}>Tambah Pihak</button>
                   </div>
                   <div className="flex flex-wrap gap-2 mb-2">
@@ -511,13 +587,13 @@ const Notulensi: React.FC = () => {
               <div>
                 <label className="block text-gray-300 mb-1 text-lg">Catatan</label>
                 <div className="rounded overflow-hidden border-2 border-cyan-700 bg-white">
-                  <ReactQuill theme="snow" value={catatan} onChange={setCatatan} style={{ minHeight: 220, fontSize: 18 }} className="text-lg quill-notulensi" />
+                  <ReactQuill theme="snow" value={catatan} onChange={handleCatatanChange} style={{ minHeight: 220, fontSize: 18 }} className="text-lg quill-notulensi" />
                 </div>
               </div>
               {error && <div className="text-red-400 text-base font-semibold">{error}</div>}
               <div className="flex gap-4 mt-4">
                 <button type="submit" className="bg-cyan-600 hover:bg-cyan-700 text-white px-8 py-3 rounded text-lg font-bold flex-1" disabled={saving}>{saving?'Menyimpan...':'Simpan Notulensi'}</button>
-                <button type="button" className="bg-gray-700 hover:bg-gray-600 text-white px-8 py-3 rounded text-lg font-bold flex-1" onClick={()=>{setSelectedSesi('');resetForm();}}>Batal</button>
+                <button type="button" className="bg-gray-700 hover:bg-gray-600 text-white px-8 py-3 rounded text-lg font-bold flex-1" onClick={handleSelesai}>Selesai & Kembali</button>
               </div>
             </form>
           ) : (
@@ -565,7 +641,7 @@ const Notulensi: React.FC = () => {
                     ))}
                   </div>
                   <div className="flex items-center gap-2 mt-2">
-                    <input type="text" placeholder="Tambah sesi manual..." value={sesiLainnya} onChange={e=>setSesiLainnya(e.target.value)} className="px-4 py-2 rounded bg-slate-700 text-gray-200 text-lg" />
+                    <input type="text" placeholder="Tambah sesi manual..." value={sesiLainnya} onChange={e=>handleFormChange('sesiLainnya', e.target.value)} className="px-4 py-2 rounded bg-slate-700 text-gray-200 text-lg" />
                     <button type="button" className="bg-cyan-600 px-4 py-2 rounded text-white font-semibold" disabled={!sesiLainnya.trim() || loadingSessions} onClick={handleAddManualSession}>Tambah</button>
                   </div>
                 </div>
@@ -589,17 +665,17 @@ const Notulensi: React.FC = () => {
                       </div>
                       <div>
                         <label className="block text-gray-300 mb-1">Tanggal</label>
-                        <input type="date" value={tanggal} onChange={e=>setTanggal(e.target.value)} className="w-full px-4 py-2 rounded bg-slate-700 text-gray-200 text-lg" required />
+                        <input type="date" value={tanggal} onChange={e=>handleFormChange('tanggal', e.target.value)} className="w-full px-4 py-2 rounded bg-slate-700 text-gray-200 text-lg" required />
                       </div>
                       <div className="md:col-span-2">
                         <label className="block text-gray-300 mb-1">Tempat</label>
-                        <input type="text" value={tempat} onChange={e=>setTempat(e.target.value)} className="w-full px-4 py-2 rounded bg-slate-700 text-gray-200 text-lg" required />
+                        <input type="text" value={tempat} onChange={e=>handleFormChange('tempat', e.target.value)} className="w-full px-4 py-2 rounded bg-slate-700 text-gray-200 text-lg" required />
                       </div>
                       <div className="md:col-span-2">
                         <label className="block text-gray-300 mb-1">Pihak & Perwakilan</label>
                         <div className="flex flex-col md:flex-row gap-2 mb-2">
-                          <input type="text" placeholder="Nama Pihak" value={pihakInput} onChange={e=>setPihakInput(e.target.value)} className="px-4 py-2 rounded bg-slate-700 text-gray-200 text-lg flex-1" />
-                          <input type="text" placeholder="Perwakilan (tekan Enter)" value={perwakilanInput} onChange={e=>setPerwakilanInput(e.target.value)} onKeyDown={e=>{if(e.key==='Enter'){e.preventDefault();handleAddPerwakilan();}}} className="px-4 py-2 rounded bg-slate-700 text-gray-200 text-lg flex-1" />
+                          <input type="text" placeholder="Nama Pihak" value={pihakInput} onChange={e=>handleFormChange('pihakInput', e.target.value)} className="px-4 py-2 rounded bg-slate-700 text-gray-200 text-lg flex-1" />
+                          <input type="text" placeholder="Perwakilan (tekan Enter)" value={perwakilanInput} onChange={e=>handleFormChange('perwakilanInput', e.target.value)} onKeyDown={e=>{if(e.key==='Enter'){e.preventDefault();handleAddPerwakilan();}}} className="px-4 py-2 rounded bg-slate-700 text-gray-200 text-lg flex-1" />
                           <button type="button" className="bg-cyan-600 px-4 py-2 rounded text-white font-semibold" onClick={handleAddPihak}>Tambah Pihak</button>
                         </div>
                         <div className="flex flex-wrap gap-2 mb-2">
@@ -613,7 +689,7 @@ const Notulensi: React.FC = () => {
                     <div>
                       <label className="block text-gray-300 mb-1 text-lg">Catatan</label>
                       <div className="rounded overflow-hidden border-2 border-cyan-700 bg-white">
-                        <ReactQuill theme="snow" value={catatan} onChange={setCatatan} style={{ minHeight: 220, fontSize: 18 }} className="text-lg quill-notulensi" />
+                        <ReactQuill theme="snow" value={catatan} onChange={handleCatatanChange} style={{ minHeight: 220, fontSize: 18 }} className="text-lg quill-notulensi" />
                       </div>
                     </div>
                     {error && <div className="text-red-400 text-base font-semibold">{error}</div>}
@@ -747,11 +823,20 @@ const Notulensi: React.FC = () => {
                             } else {
                               setSelectedSubJudul(null);
                             }
+
+                            // --- PERBAIKAN DI SINI ---
+                            // 1. Isi state `selectedSesi` yang digunakan oleh input field
                             setSelectedSesi(n.sesi);
-                            setTanggal(n.tanggal);
-                            setTempat(n.tempat);
-                            setCatatan(n.catatan);
-                            setPihak(n.pihak?.map(p => ({ nama_pihak: p.nama_pihak, perwakilan: p.perwakilan })) || []);
+
+                            // 2. Gabungkan semua pembaruan formState menjadi satu
+                            setFormState(prev => ({
+                              ...prev,
+                              sesi: n.sesi,
+                              tanggal: n.tanggal,
+                              tempat: n.tempat,
+                              catatan: n.catatan,
+                              pihak: n.pihak?.map((p: any) => ({ nama_pihak: p.nama_pihak, perwakilan: p.perwakilan })) || [],
+                            }));
                           }}><PencilIcon className="w-5 h-5 text-yellow-400" /></button>
                           <button title="Hapus" className="p-2 rounded hover:bg-red-700/30" onClick={async e => {e.stopPropagation(); if(window.confirm('Yakin hapus notulensi ini?')){ await deleteNotulensi(n.id); fetchNotulensi(); }}}><TrashIcon className="w-5 h-5 text-red-400" /></button>
                           <button title="Copy" className="p-2 rounded hover:bg-gray-700/30" onClick={e => {e.stopPropagation(); handleCopy(n);}}><DocumentDuplicateIcon className="w-5 h-5 text-gray-200" /></button>
@@ -816,11 +901,7 @@ const Notulensi: React.FC = () => {
                 setSelected(null);
                 setSelectedJudul(judulList.find(j => j.id === selected?.judul_id) || null);
                 setSelectedSubJudul(subJudulList.find(s => s.id === selected?.subjudul_id) || null);
-                setSelectedSesi((selected)?.sesi || '');
-                setTanggal((selected)?.tanggal || '');
-                setTempat((selected)?.tempat || '');
-                setCatatan((selected)?.catatan || '');
-                setPihak((selected)?.pihak?.map(p => ({ nama_pihak: p.nama_pihak, perwakilan: p.perwakilan })) || []);
+                setFormState(prev => ({ ...prev, sesi: (selected)?.sesi || '', tanggal: (selected)?.tanggal || '', tempat: (selected)?.tempat || '', catatan: (selected)?.catatan || '', pihak: (selected)?.pihak?.map(p => ({ nama_pihak: p.nama_pihak, perwakilan: p.perwakilan })) || [] }));
                 setShowForm(true);
               }}>
                 Edit
@@ -837,6 +918,7 @@ const Notulensi: React.FC = () => {
           </div>
         </div>
       )}
+      {showSuccess && <div className="text-green-400 mt-2">Berhasil disimpan!</div>}
     </div>
   );
 };
