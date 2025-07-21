@@ -182,7 +182,58 @@ const Notulensi: React.FC = () => {
     setLoading(false);
   };
 
+  // Tambahkan useEffect untuk auto-save draft
+  useEffect(() => {
+    const draft = {
+      judulId,
+      subJudulId,
+      sesi,
+      sesiLainnya,
+      tanggal,
+      tempat,
+      catatan,
+      pihak,
+      pihakInput,
+      perwakilanInput,
+      perwakilanList,
+      selectedJudul,
+      selectedSubJudul,
+      selectedSesi,
+      tab,
+      editData
+    };
+    localStorage.setItem('draft_notulensi', JSON.stringify(draft));
+  }, [judulId, subJudulId, sesi, sesiLainnya, tanggal, tempat, catatan, pihak, pihakInput, perwakilanInput, perwakilanList, selectedJudul, selectedSubJudul, selectedSesi, tab, editData]);
+
+  // Saat mount, restore draft jika ada
+  useEffect(() => {
+    const draftStr = localStorage.getItem('draft_notulensi');
+    if (draftStr) {
+      try {
+        const draft = JSON.parse(draftStr);
+        if (draft.judulId) setJudulId(draft.judulId);
+        if (draft.subJudulId) setSubJudulId(draft.subJudulId);
+        if (draft.sesi) setSesi(draft.sesi);
+        if (draft.sesiLainnya) setSesiLainnya(draft.sesiLainnya);
+        if (draft.tanggal) setTanggal(draft.tanggal);
+        if (draft.tempat) setTempat(draft.tempat);
+        if (draft.catatan) setCatatan(draft.catatan);
+        if (draft.pihak) setPihak(draft.pihak);
+        if (draft.pihakInput) setPihakInput(draft.pihakInput);
+        if (draft.perwakilanInput) setPerwakilanInput(draft.perwakilanInput);
+        if (draft.perwakilanList) setPerwakilanList(draft.perwakilanList);
+        if (draft.selectedJudul) setSelectedJudul(draft.selectedJudul);
+        if (draft.selectedSubJudul) setSelectedSubJudul(draft.selectedSubJudul);
+        if (draft.selectedSesi) setSelectedSesi(draft.selectedSesi);
+        if (draft.tab) setTab(draft.tab);
+        if (draft.editData) setEditData(draft.editData);
+      } catch {}
+    }
+  }, []);
+
+  // Hapus draft setelah submit sukses atau reset form
   const resetForm = () => {
+    localStorage.removeItem('draft_notulensi');
     setJudulId('');
     setSubJudulId('');
     setSesi('Paparan Pendahuluan');

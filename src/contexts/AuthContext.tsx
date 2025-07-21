@@ -28,18 +28,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Check if this is a fresh page load (not a refresh within the same session)
-    const isNewSession = !sessionStorage.getItem('app_session_active');
-    
-    if (isNewSession) {
-      // This is a new session (tab was closed and reopened), force logout
-      console.log('New session detected, clearing authentication');
-      authLogout();
-      setUser(null);
-      setLoading(false);
-      return;
-    }
-
     const loadUser = async () => {
       try {
         const currentUser = await getCurrentUser();
@@ -58,19 +46,19 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           // Subscribe to user updates for current user
           const userSubscription = supabase
             .channel('user-updates')
-            .on('broadcast', { event: 'user_updated' }, (payload) => {
+            .on('broadcast', { event: 'user_updated' }, (payload: any) => {
               console.log('User update received:', payload);
               if (payload.payload?.id === currentUser.id) {
                 setUser(payload.payload);
               }
             })
-            .on('broadcast', { event: 'minimal_poin_updated' }, (payload) => {
+            .on('broadcast', { event: 'minimal_poin_updated' }, (payload: any) => {
               console.log('Minimal poin update received:', payload);
               if (payload.payload?.userId === currentUser.id) {
                 setUser(prev => prev ? { ...prev, minimal_poin: payload.payload.minimalPoin } : null);
               }
             })
-            .on('broadcast', { event: 'can_view_poin_updated' }, (payload) => {
+            .on('broadcast', { event: 'can_view_poin_updated' }, (payload: any) => {
               console.log('Can view poin update received:', payload);
               if (payload.payload?.userId === currentUser.id) {
                 setUser(prev => prev ? { ...prev, can_view_poin: payload.payload.canViewPoin } : null);
