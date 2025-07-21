@@ -177,6 +177,7 @@ export const HistoriAktivitas: React.FC = () => {
                 onClick={() => navigate('/dashboard')}
                 className="flex items-center gap-2 px-5 py-2 rounded-xl glass-effect border border-cyan-400/30 text-cyan-200 font-semibold shadow-md hover:bg-cyan-700/20 hover:text-white transition w-full sm:w-auto"
               >
+                <ArrowLeftIcon className="w-5 h-5" />
                 Kembali
               </button>
               <div>

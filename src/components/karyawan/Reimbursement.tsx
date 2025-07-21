@@ -416,6 +416,7 @@ export const Reimbursement: React.FC = () => {
                   onClick={() => navigate('/dashboard')}
                   className="flex items-center gap-2 px-5 py-2 rounded-xl glass-effect border border-cyan-400/30 text-cyan-200 font-semibold shadow-md hover:bg-cyan-700/20 hover:text-white transition w-full sm:w-auto"
                 >
+                  <ArrowLeftIcon className="w-5 h-5" />
                   Kembali
                 </button>
                 <div>
@@ -447,6 +448,7 @@ export const Reimbursement: React.FC = () => {
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: index * 0.1 }}
+                    className="mb-6 last:mb-0"
                   >
                     <Card>
                       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-4 mb-2">
@@ -524,6 +526,28 @@ export const Reimbursement: React.FC = () => {
                          </div>
                        ))}
                       </div>
+
+                      {/* Tombol Edit & Hapus hanya jika status pending */}
+                      {request.status === 'pending' && (
+                        <div className="flex flex-wrap sm:flex-nowrap gap-2 mt-4 w-full justify-end border-t border-cyan-500/10 pt-4">
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="border-cyan-500/50 text-cyan-300 text-xs px-2 py-1"
+                            onClick={() => handleEdit(request)}
+                          >
+                            <PencilIcon className="w-4 h-4 mr-1" /> Edit
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="border-red-500/50 text-red-300 text-xs px-2 py-1"
+                            onClick={() => handleDelete(request.id)}
+                          >
+                            <TrashIcon className="w-4 h-4 mr-1" /> Hapus
+                          </Button>
+                        </div>
+                      )}
 
                       {request.notes && (
                         <div className="mt-4 p-3 bg-yellow-500/10 border border-yellow-500/30 rounded-lg">
