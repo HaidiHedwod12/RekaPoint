@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import { getAllNotulensi, getAllJudul, getSubJudulByJudul, createNotulensi, updateNotulensi, deleteNotulensi, getManualSessionsBySubJudul, addManualSession, getAllUsers } from '../../lib/database';
 import type { Notulensi, Judul, SubJudul, NotulensiPihak } from '../../types';
@@ -22,38 +22,77 @@ const SESSIONS = [
   'Lainnya'
 ];
 
+// Helper di luar komponen untuk mengambil state awal dari localStorage
+const getInitialState = () => {
+  const draft = localStorage.getItem('notulensi_draft');
+  if (draft) {
+    try {
+      const parsed = JSON.parse(draft);
+      // Pastikan data yang direstore valid
+      if(parsed && typeof parsed === 'object') return parsed;
+    } catch (e) {
+      // Abaikan jika JSON tidak valid
+    }
+  }
+  // Default state jika tidak ada draft
+  return {
+    tab: 'buat',
+    showForm: false,
+    editData: null,
+    judulId: '',
+    subJudulId: '',
+    sesi: 'Paparan Pendahuluan',
+    sesiLainnya: '',
+    tanggal: '',
+    tempat: '',
+    catatan: '',
+    pihak: [],
+    pihakInput: '',
+    perwakilanInput: '',
+    perwakilanList: [],
+    selectedJudul: null,
+    selectedSubJudul: null,
+    selectedSesi: '',
+  };
+};
+
+
 const Notulensi: React.FC = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
-  const [tab, setTab] = useState<'buat' | 'riwayat'>('buat');
+
+  const isInitialMount = useRef(true);
+  const [initialState] = useState(getInitialState);
+  
+  const [tab, setTab] = useState<'buat' | 'riwayat'>(initialState.tab);
   const [notulensi, setNotulensi] = useState<Notulensi[]>([]);
   const [loading, setLoading] = useState(true);
-  const [showForm, setShowForm] = useState(false);
+  const [showForm, setShowForm] = useState(initialState.showForm);
   const [selected, setSelected] = useState<Notulensi | null>(null);
-  const [editData, setEditData] = useState<Notulensi | null>(null);
+  const [editData, setEditData] = useState<Notulensi | null>(initialState.editData);
 
-  // Form state
+  // Form state diinisialisasi dari localStorage
   const [judulList, setJudulList] = useState<Judul[]>([]);
   const [subJudulList, setSubJudulList] = useState<SubJudul[]>([]);
-  const [judulId, setJudulId] = useState('');
-  const [subJudulId, setSubJudulId] = useState('');
-  const [sesi, setSesi] = useState('Paparan Pendahuluan');
-  const [sesiLainnya, setSesiLainnya] = useState('');
-  const [tanggal, setTanggal] = useState('');
-  const [tempat, setTempat] = useState('');
-  const [catatan, setCatatan] = useState('');
-  const [pihak, setPihak] = useState<{ nama_pihak: string; perwakilan: string[] }[]>([]);
-  const [pihakInput, setPihakInput] = useState('');
-  const [perwakilanInput, setPerwakilanInput] = useState('');
-  const [perwakilanList, setPerwakilanList] = useState<string[]>([]);
+  const [judulId, setJudulId] = useState(initialState.judulId);
+  const [subJudulId, setSubJudulId] = useState(initialState.subJudulId);
+  const [sesi, setSesi] = useState(initialState.sesi);
+  const [sesiLainnya, setSesiLainnya] = useState(initialState.sesiLainnya);
+  const [tanggal, setTanggal] = useState(initialState.tanggal);
+  const [tempat, setTempat] = useState(initialState.tempat);
+  const [catatan, setCatatan] = useState(initialState.catatan);
+  const [pihak, setPihak] = useState<{ nama_pihak: string; perwakilan: string[] }[]>(initialState.pihak);
+  const [pihakInput, setPihakInput] = useState(initialState.pihakInput);
+  const [perwakilanInput, setPerwakilanInput] = useState(initialState.perwakilanInput);
+  const [perwakilanList, setPerwakilanList] = useState<string[]>(initialState.perwakilanList);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
 
   // State for new UI flow
-  const [selectedJudul, setSelectedJudul] = useState<Judul | null>(null);
-  const [selectedSubJudul, setSelectedSubJudul] = useState<SubJudul | null>(null);
-  const [selectedSesi, setSelectedSesi] = useState('');
+  const [selectedJudul, setSelectedJudul] = useState<Judul | null>(initialState.selectedJudul);
+  const [selectedSubJudul, setSelectedSubJudul] = useState<SubJudul | null>(initialState.selectedSubJudul);
+  const [selectedSesi, setSelectedSesi] = useState(initialState.selectedSesi);
   const [manualSessions, setManualSessions] = useState<string[]>([]);
   const [loadingSessions, setLoadingSessions] = useState(false);
   const [expandedId, setExpandedId] = useState<string | null>(null);
@@ -182,58 +221,28 @@ const Notulensi: React.FC = () => {
     setLoading(false);
   };
 
-  // Tambahkan useEffect untuk auto-save draft
+  // useEffect untuk menyimpan draft ke localStorage
   useEffect(() => {
-    const draft = {
-      judulId,
-      subJudulId,
-      sesi,
-      sesiLainnya,
-      tanggal,
-      tempat,
-      catatan,
-      pihak,
-      pihakInput,
-      perwakilanInput,
-      perwakilanList,
-      selectedJudul,
-      selectedSubJudul,
-      selectedSesi,
-      tab,
-      editData
+    // Jangan simpan draft saat edit dari admin
+    if (location.state?.editData) return;
+    
+    const draftState = {
+      tab, showForm, editData, judulId, subJudulId, sesi, sesiLainnya,
+      tanggal, tempat, catatan, pihak, pihakInput, perwakilanInput,
+      perwakilanList, selectedJudul, selectedSubJudul, selectedSesi,
     };
-    localStorage.setItem('draft_notulensi', JSON.stringify(draft));
-  }, [judulId, subJudulId, sesi, sesiLainnya, tanggal, tempat, catatan, pihak, pihakInput, perwakilanInput, perwakilanList, selectedJudul, selectedSubJudul, selectedSesi, tab, editData]);
+    localStorage.setItem('notulensi_draft', JSON.stringify(draftState));
+  }, [
+    tab, showForm, editData, judulId, subJudulId, sesi, sesiLainnya,
+    tanggal, tempat, catatan, pihak, pihakInput, perwakilanInput,
+    perwakilanList, selectedJudul, selectedSubJudul, selectedSesi,
+    location.state
+  ]);
 
-  // Saat mount, restore draft jika ada
-  useEffect(() => {
-    const draftStr = localStorage.getItem('draft_notulensi');
-    if (draftStr) {
-      try {
-        const draft = JSON.parse(draftStr);
-        if (draft.judulId) setJudulId(draft.judulId);
-        if (draft.subJudulId) setSubJudulId(draft.subJudulId);
-        if (draft.sesi) setSesi(draft.sesi);
-        if (draft.sesiLainnya) setSesiLainnya(draft.sesiLainnya);
-        if (draft.tanggal) setTanggal(draft.tanggal);
-        if (draft.tempat) setTempat(draft.tempat);
-        if (draft.catatan) setCatatan(draft.catatan);
-        if (draft.pihak) setPihak(draft.pihak);
-        if (draft.pihakInput) setPihakInput(draft.pihakInput);
-        if (draft.perwakilanInput) setPerwakilanInput(draft.perwakilanInput);
-        if (draft.perwakilanList) setPerwakilanList(draft.perwakilanList);
-        if (draft.selectedJudul) setSelectedJudul(draft.selectedJudul);
-        if (draft.selectedSubJudul) setSelectedSubJudul(draft.selectedSubJudul);
-        if (draft.selectedSesi) setSelectedSesi(draft.selectedSesi);
-        if (draft.tab) setTab(draft.tab);
-        if (draft.editData) setEditData(draft.editData);
-      } catch {}
-    }
-  }, []);
+  // Hapus useEffect yang lama untuk restore draft
 
-  // Hapus draft setelah submit sukses atau reset form
   const resetForm = () => {
-    localStorage.removeItem('draft_notulensi');
+    localStorage.removeItem('notulensi_draft');
     setJudulId('');
     setSubJudulId('');
     setSesi('Paparan Pendahuluan');
@@ -413,6 +422,29 @@ const Notulensi: React.FC = () => {
     ...manualSessions
   ]));
 
+  const handleBackToJudul = () => {
+    setSelectedJudul(null);
+    setSelectedSubJudul(null);
+    setSelectedSesi('');
+    setTanggal('');
+    setTempat('');
+    setCatatan('');
+    setPihak([]);
+    setPerwakilanList([]);
+    setPihakInput('');
+    setPerwakilanInput('');
+    setEditData(null);
+  };
+  
+  const handleBackToSubJudul = () => {
+    setSelectedSubJudul(null);
+    setSelectedSesi('');
+  };
+
+  const handleBackToSesi = () => {
+    setSelectedSesi('');
+  };
+
   return (
     <div className="min-h-screen py-8 px-4 max-w-6xl mx-auto">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 sm:gap-0 mb-6">
@@ -506,7 +538,7 @@ const Notulensi: React.FC = () => {
                 </div>
               ) : !selectedSubJudul ? (
                 <div>
-                  <button className="mb-4 text-cyan-400 hover:underline" onClick={()=>setSelectedJudul(null)}>&larr; Kembali ke Judul</button>
+                  <button className="mb-4 text-cyan-400 hover:underline" onClick={handleBackToJudul}>&larr; Kembali ke Judul</button>
                   <div className="mb-2 text-cyan-300 font-semibold">Pilih Sub Judul:</div>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     {subJudulList.map(s => (
@@ -520,7 +552,7 @@ const Notulensi: React.FC = () => {
                 </div>
               ) : !selectedSesi ? (
                 <div>
-                  <button className="mb-4 text-cyan-400 hover:underline" onClick={()=>setSelectedSubJudul(null)}>&larr; Kembali ke Sub Judul</button>
+                  <button className="mb-4 text-cyan-400 hover:underline" onClick={handleBackToSubJudul}>&larr; Kembali ke Sub Judul</button>
                   <div className="mb-2 text-cyan-300 font-semibold">Pilih Sesi:</div>
                   <div className="flex flex-wrap gap-2 mb-4">
                     {allSessions.map(s => (
@@ -539,7 +571,7 @@ const Notulensi: React.FC = () => {
                 </div>
               ) : (
                 <div>
-                  <button className="mb-4 text-cyan-400 hover:underline" onClick={()=>setSelectedSesi('')}>&larr; Kembali ke Sesi</button>
+                  <button className="mb-4 text-cyan-400 hover:underline" onClick={handleBackToSesi}>&larr; Kembali ke Sesi</button>
                   <form onSubmit={handleSubmit} className="space-y-6 bg-slate-800 p-8 rounded-xl border border-cyan-700 max-w-2xl mx-auto shadow-lg">
                     <div className="text-cyan-300 font-bold text-2xl mb-4">Input Notulensi</div>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">

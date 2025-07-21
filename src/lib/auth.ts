@@ -69,8 +69,6 @@ export const logout = async () => {
   await supabase.auth.signOut();
   // Remove cookie
   Cookies.remove('auth_token');
-  // Clear session storage
-  sessionStorage.removeItem('app_session_active');
 };
 
 export const getCurrentUser = async (): Promise<User | null> => {
@@ -78,19 +76,11 @@ export const getCurrentUser = async (): Promise<User | null> => {
     const token = Cookies.get('auth_token');
     if (!token) return null;
 
-    // Check if session is still active
-    const sessionActive = sessionStorage.getItem('app_session_active');
-    if (!sessionActive) {
-      // Session expired, clear token
-      Cookies.remove('auth_token');
-      return null;
-    }
     const userData = parseToken(token);
     return userData;
   } catch (error) {
-    // Clear invalid token and session
+    // Clear invalid token
     Cookies.remove('auth_token');
-    sessionStorage.removeItem('app_session_active');
     return null;
   }
 };
