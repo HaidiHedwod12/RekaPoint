@@ -29,6 +29,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   useEffect(() => {
     const loadUser = async () => {
+      // Cek apakah sesi aktif di tab ini
+      const sessionActive = sessionStorage.getItem('app_session_active');
+
+      if (!sessionActive) {
+        // Jika tidak ada sesi aktif (tab baru), logout
+        authLogout();
+        setUser(null);
+        setLoading(false);
+        return;
+      }
+      
       try {
         const currentUser = await getCurrentUser();
         setUser(currentUser);
@@ -46,7 +57,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     try {
       const authUser = await authLogin(username, password);
       setUser(authUser.user);
-      // Set user context for database operations
+      // Tandai sesi sebagai aktif di sessionStorage
+      sessionStorage.setItem('app_session_active', 'true');
       await supabase.rpc('set_current_user', { user_id: authUser.user.id });
     } catch (error) {
       throw error;
@@ -56,6 +68,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const logout = () => {
     authLogout();
     setUser(null);
+    // Hapus tanda sesi saat logout
+    sessionStorage.removeItem('app_session_active');
   };
 
   const getMonthlyUserSettings = async (month: number, year: number) => {
