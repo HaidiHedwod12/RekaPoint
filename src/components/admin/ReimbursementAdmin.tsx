@@ -192,7 +192,7 @@ export const ReimbursementAdmin: React.FC = () => {
     switch (request.status) {
       case 'pending':
         return (
-          <div className="flex space-x-2">
+          <>
             <Button
               size="sm"
               onClick={() => handleAction(request, 'approve')}
@@ -209,7 +209,7 @@ export const ReimbursementAdmin: React.FC = () => {
               <XMarkIcon className="w-4 h-4 mr-1" />
               Tolak
             </Button>
-          </div>
+          </>
         );
       case 'approved':
         return (
@@ -248,21 +248,21 @@ export const ReimbursementAdmin: React.FC = () => {
           animate={{ opacity: 1, y: 0 }}
           className="mb-8"
         >
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-4">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 sm:gap-0">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 sm:gap-4">
               <Button
                 variant="outline"
                 onClick={() => navigate('/dashboard')}
-                className="border-cyan-500/50 text-cyan-300"
+                className="border-cyan-500/50 text-cyan-300 w-full sm:w-auto"
               >
                 <ArrowLeftIcon className="w-5 h-5 mr-2" />
                 Kembali
               </Button>
               <div>
-                <h1 className="text-3xl font-bold bg-gradient-to-r from-cyan-400 to-blue-400 bg-clip-text text-transparent">
+                <h1 className="text-2xl sm:text-3xl font-bold bg-gradient-to-r from-cyan-400 to-blue-400 bg-clip-text text-transparent">
                   Reimbursement Admin
                 </h1>
-                <p className="text-gray-400 mt-1">Kelola permintaan reimbursement karyawan</p>
+                <p className="text-gray-400 mt-1 text-sm sm:text-base">Kelola permintaan reimbursement karyawan</p>
               </div>
             </div>
           </div>
@@ -298,7 +298,7 @@ export const ReimbursementAdmin: React.FC = () => {
                 transition={{ delay: index * 0.1 }}
               >
                 <Card>
-                  <div className="flex items-start justify-between">
+                  <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
                     <div className="flex-1">
                       <div className="flex items-center space-x-3 mb-4">
                         <div className="w-12 h-12 bg-gradient-to-br from-cyan-500 to-blue-600 rounded-full flex items-center justify-center">
@@ -398,7 +398,7 @@ export const ReimbursementAdmin: React.FC = () => {
                       )}
                     </div>
 
-                    <div className="flex flex-col space-y-2 ml-4">
+                    <div className="flex flex-col gap-2 w-full sm:w-auto mt-4 sm:mt-0">
                       <Button
                         size="sm"
                         variant="outline"
@@ -406,17 +406,19 @@ export const ReimbursementAdmin: React.FC = () => {
                           setSelectedRequest(request);
                           setShowDetailModal(true);
                         }}
-                        className="border-cyan-500/50 text-cyan-300"
+                        className="border-cyan-500/50 text-cyan-300 w-full"
                       >
                         <EyeIcon className="w-4 h-4 mr-1" />
                         Detail
                       </Button>
-                      {getActionButton(request)}
+                      <div className="flex flex-row flex-wrap justify-center gap-2 w-full">
+                        {getActionButton(request)}
+                      </div>
                       <Button
                         size="sm"
                         variant="outline"
                         onClick={() => handleEditStatus(request)}
-                        className="border-yellow-500/50 text-yellow-300"
+                        className="border-yellow-500/50 text-yellow-300 w-full"
                       >
                         <ExclamationTriangleIcon className="w-4 h-4 mr-1" />
                         Edit Status
@@ -425,7 +427,7 @@ export const ReimbursementAdmin: React.FC = () => {
                         size="sm"
                         variant="outline"
                         onClick={() => handleDelete(request)}
-                        className="border-red-500/50 text-red-300"
+                        className="border-red-500/50 text-red-300 w-full"
                       >
                         <TrashIcon className="w-4 h-4 mr-1" />
                         Hapus

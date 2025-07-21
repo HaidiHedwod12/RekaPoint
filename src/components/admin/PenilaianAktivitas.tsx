@@ -151,29 +151,29 @@ export const PenilaianAktivitas: React.FC = () => {
           animate={{ opacity: 1, y: 0 }}
           className="mb-8"
         >
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-4">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 sm:gap-0">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 sm:gap-4">
               <Button
                 variant="outline"
                 onClick={() => navigate('/dashboard')}
-                className="border-cyan-500/50 text-cyan-300"
+                className="border-cyan-500/50 text-cyan-300 w-full sm:w-auto"
               >
                 <ArrowLeftIcon className="w-5 h-5 mr-2" />
                 Kembali
               </Button>
               <div>
-                <h1 className="text-3xl font-bold bg-gradient-to-r from-cyan-400 to-blue-400 bg-clip-text text-transparent">
+                <h1 className="text-2xl sm:text-3xl font-bold bg-gradient-to-r from-cyan-400 to-blue-400 bg-clip-text text-transparent">
                   Penilaian Aktivitas
                 </h1>
-                <p className="text-gray-400 mt-1">Nilai aktivitas harian karyawan</p>
+                <p className="text-gray-400 mt-1 text-sm sm:text-base">Nilai aktivitas harian karyawan</p>
               </div>
             </div>
             
-            <div className="flex space-x-4">
+            <div className="flex flex-col sm:flex-row gap-2 sm:gap-4 w-full sm:w-auto">
               <select
                 value={filter.month}
                 onChange={(e) => setFilter({ ...filter, month: parseInt(e.target.value) })}
-                className="px-4 py-2 glass-effect border border-gray-600/50 rounded-lg text-white bg-slate-800/50 focus:outline-none focus:ring-2 focus:ring-cyan-400 [&>option]:bg-slate-800 [&>option]:text-white"
+                className="px-2 sm:px-4 py-1 sm:py-2 glass-effect border border-gray-600/50 rounded-lg text-white bg-slate-800/50 focus:outline-none focus:ring-2 focus:ring-cyan-400 w-full sm:w-auto text-xs sm:text-base [&>option]:bg-slate-800 [&>option]:text-white"
               >
                 {Array.from({ length: 12 }, (_, i) => (
                   <option key={i + 1} value={i + 1} className="bg-slate-800 text-white">
@@ -184,7 +184,7 @@ export const PenilaianAktivitas: React.FC = () => {
               <select
                 value={filter.year}
                 onChange={(e) => setFilter({ ...filter, year: parseInt(e.target.value) })}
-                className="px-4 py-2 glass-effect border border-gray-600/50 rounded-lg text-white bg-slate-800/50 focus:outline-none focus:ring-2 focus:ring-cyan-400 [&>option]:bg-slate-800 [&>option]:text-white"
+                className="px-2 sm:px-4 py-1 sm:py-2 glass-effect border border-gray-600/50 rounded-lg text-white bg-slate-800/50 focus:outline-none focus:ring-2 focus:ring-cyan-400 w-full sm:w-auto text-xs sm:text-base [&>option]:bg-slate-800 [&>option]:text-white"
               >
                 {Array.from({ length: 5 }, (_, i) => (
                   <option key={2025 + i} value={2025 + i} className="bg-slate-800 text-white">
@@ -195,7 +195,7 @@ export const PenilaianAktivitas: React.FC = () => {
               <select
                 value={filter.userId}
                 onChange={(e) => setFilter({ ...filter, userId: e.target.value })}
-                className="px-4 py-2 glass-effect border border-gray-600/50 rounded-lg text-white bg-slate-800/50 focus:outline-none focus:ring-2 focus:ring-cyan-400 [&>option]:bg-slate-800 [&>option]:text-white"
+                className="px-2 sm:px-4 py-1 sm:py-2 glass-effect border border-gray-600/50 rounded-lg text-white bg-slate-800/50 focus:outline-none focus:ring-2 focus:ring-cyan-400 w-full sm:w-auto text-xs sm:text-base [&>option]:bg-slate-800 [&>option]:text-white"
               >
                 <option value="" className="bg-slate-800 text-white">Semua Karyawan</option>
                 {users.map((user) => (
@@ -219,16 +219,16 @@ export const PenilaianAktivitas: React.FC = () => {
               <Card>
                 <div className="flex items-start justify-between">
                   <div className="flex-1">
-                    <div className="flex items-center space-x-4 mb-4">
-                      <div className="w-12 h-12 bg-gradient-to-br from-cyan-500 to-blue-600 rounded-full flex items-center justify-center">
-                        <UserIcon className="w-6 h-6 text-white" />
+                    <div className="flex flex-col sm:flex-row gap-2 sm:gap-4 items-start sm:items-center mb-4">
+                      <div className="w-8 h-8 sm:w-12 sm:h-12 bg-gradient-to-br from-cyan-500 to-blue-600 rounded-full flex items-center justify-center">
+                        <UserIcon className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
                       </div>
                       <div>
-                        <h3 className="font-semibold text-white">{item.user?.nama}</h3>
-                        <p className="text-sm text-gray-400">{item.user?.jabatan}</p>
+                        <h3 className="font-semibold text-white text-sm sm:text-base">{item.user?.nama}</h3>
+                        <p className="text-xs sm:text-sm text-gray-400">{item.user?.jabatan}</p>
                       </div>
-                      <div className="flex items-center space-x-2 text-sm text-gray-400">
-                        <CalendarIcon className="w-4 h-4" />
+                      <div className="flex items-center space-x-2 text-xs sm:text-sm text-gray-400">
+                        <CalendarIcon className="w-4 h-4 sm:w-5 sm:h-5" />
                         <span>{format(new Date(item.tanggal), 'dd MMM yyyy')}</span>
                       </div>
                     </div>

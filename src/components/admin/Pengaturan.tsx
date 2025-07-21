@@ -261,21 +261,21 @@ export const Pengaturan: React.FC = () => {
           animate={{ opacity: 1, y: 0 }}
           className="mb-8"
         >
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-4">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 sm:gap-0">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 sm:gap-4">
               <Button
                 variant="outline"
                 onClick={() => navigate('/dashboard')}
-                className="border-cyan-500/50 text-cyan-300"
+                className="border-cyan-500/50 text-cyan-300 w-full sm:w-auto"
               >
                 <ArrowLeftIcon className="w-5 h-5 mr-2" />
                 Kembali
               </Button>
               <div>
-                <h1 className="text-3xl font-bold bg-gradient-to-r from-cyan-400 to-blue-400 bg-clip-text text-transparent">
+                <h1 className="text-2xl sm:text-3xl font-bold bg-gradient-to-r from-cyan-400 to-blue-400 bg-clip-text text-transparent">
                   Pengaturan
                 </h1>
-                <p className="text-gray-400 mt-1">Kelola judul dan subjudul aktivitas</p>
+                <p className="text-gray-400 mt-1 text-sm sm:text-base">Kelola judul dan subjudul aktivitas</p>
               </div>
             </div>
             <Button
@@ -342,24 +342,24 @@ export const Pengaturan: React.FC = () => {
               transition={{ delay: index * 0.1 }}
             >
               <Card>
-                <div className="flex items-center justify-between mb-4">
-                  <div className="flex items-center space-x-3">
-                    <div className="w-12 h-12 bg-gradient-to-br from-cyan-500 to-blue-600 rounded-full flex items-center justify-center">
-                      <FolderIcon className="w-6 h-6 text-white" />
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-0 mb-4">
+                  <div className="flex items-center gap-2 sm:gap-3 min-w-0">
+                    <div className="w-8 h-8 sm:w-12 sm:h-12 bg-gradient-to-br from-cyan-500 to-blue-600 rounded-full flex items-center justify-center flex-shrink-0">
+                      <FolderIcon className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
                     </div>
-                    <div>
-                      <h3 className="text-xl font-semibold text-white">{judul.nama}</h3>
-                      <p className="text-sm text-gray-400">
+                    <div className="min-w-0">
+                      <h3 className="text-base sm:text-xl font-semibold text-white truncate">{judul.nama}</h3>
+                      <p className="text-xs sm:text-sm text-gray-400">
                         {subjuduls[judul.id]?.length || 0} subjudul
                       </p>
                     </div>
                   </div>
-                  <div className="flex space-x-2">
+                  <div className="flex flex-row flex-wrap gap-2 justify-end w-full sm:w-auto mt-2 sm:mt-0">
                     <Button
                       size="sm"
                       variant="outline"
                       onClick={() => setShowSubjudulForm(judul.id)}
-                      className="border-green-500/50 text-green-300"
+                      className="border-green-500/50 text-green-300 w-full sm:w-auto"
                     >
                       <PlusIcon className="w-4 h-4 mr-1" />
                       Subjudul
@@ -368,7 +368,7 @@ export const Pengaturan: React.FC = () => {
                       size="sm"
                       variant="outline"
                       onClick={() => handleJudulEdit(judul)}
-                      className="border-cyan-500/50 text-cyan-300"
+                      className="border-cyan-500/50 text-cyan-300 w-full sm:w-auto"
                     >
                       <PencilIcon className="w-4 h-4" />
                     </Button>
@@ -376,7 +376,7 @@ export const Pengaturan: React.FC = () => {
                       size="sm"
                       variant="outline"
                       onClick={() => handleJudulDelete(judul.id)}
-                      className="border-red-500/50 text-red-300 hover:bg-red-500/10"
+                      className="border-red-500/50 text-red-300 hover:bg-red-500/10 w-full sm:w-auto"
                     >
                       <TrashIcon className="w-4 h-4" />
                     </Button>
@@ -429,13 +429,13 @@ export const Pengaturan: React.FC = () => {
                     {subjuduls[judul.id].map((subjudul) => (
                       <div
                         key={subjudul.id}
-                        className="flex items-center justify-between p-3 glass-effect rounded-lg border border-gray-700/50 hover:border-gray-600/50 transition-all duration-200"
+                        className="flex flex-row items-center justify-between p-3 glass-effect rounded-lg border border-gray-700/50 hover:border-gray-600/50 transition-all duration-200 gap-2"
                       >
-                        <div className="flex items-center space-x-3">
-                          <DocumentIcon className="w-5 h-5 text-gray-400" />
-                          <span className="text-gray-300">{subjudul.nama}</span>
+                        <div className="flex items-center gap-2 sm:gap-3 min-w-0">
+                          <DocumentIcon className="w-5 h-5 sm:w-6 sm:h-6 text-gray-400 flex-shrink-0" />
+                          <span className="text-gray-300 truncate">{subjudul.nama}</span>
                         </div>
-                        <div className="flex space-x-2">
+                        <div className="flex flex-row gap-2">
                           <Button
                             size="sm"
                             variant="ghost"

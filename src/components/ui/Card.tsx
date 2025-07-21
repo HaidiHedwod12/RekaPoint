@@ -20,7 +20,7 @@ export const Card: React.FC<CardProps> = ({
         scale: 1.02, 
         boxShadow: '0 20px 40px rgba(81, 228, 255, 0.2)' 
       } : {}}
-      className={`glass-effect border border-cyan-500/20 rounded-xl p-6 transition-all duration-300 hover:border-cyan-400/50 ${className}`}
+      className={`glass-effect border border-cyan-500/20 rounded-xl p-4 sm:p-6 transition-all duration-300 hover:border-cyan-400/50 ${className}`}
     >
       {children}
     </motion.div>

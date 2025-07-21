@@ -31,7 +31,7 @@ export const Input: React.FC<InputProps> = ({
       className={`space-y-2 ${className}`}
     >
       {label && (
-        <label className="block text-sm font-medium text-gray-300">
+        <label className="block text-xs sm:text-sm font-medium text-gray-300">
           {label}
           {required && <span className="text-red-400 ml-1">*</span>}
         </label>
@@ -48,7 +48,7 @@ export const Input: React.FC<InputProps> = ({
           value={value}
           onChange={onChange}
           required={required}
-          className={`w-full ${icon ? 'pl-10' : 'pl-4'} pr-4 py-3 glass-effect border border-gray-600/50 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-cyan-400 focus:border-transparent transition-all duration-200 hover:border-cyan-500/50`}
+          className={`w-full ${icon ? 'pl-8 sm:pl-10' : 'pl-3 sm:pl-4'} pr-3 sm:pr-4 py-2 sm:py-3 glass-effect border border-gray-600/50 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-cyan-400 focus:border-transparent transition-all duration-200 hover:border-cyan-500/50 text-xs sm:text-base`}
         />
       </div>
       {error && (

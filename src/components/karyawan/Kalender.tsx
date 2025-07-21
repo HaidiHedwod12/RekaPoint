@@ -229,228 +229,226 @@ export const Kalender: React.FC = () => {
           animate={{ opacity: 1, y: 0 }}
           className="mb-8"
         >
-          <div className="flex items-center space-x-4">
-            <Button
-              variant="outline"
-              onClick={() => navigate('/dashboard')}
-              className="border-cyan-500/50 text-cyan-300"
-            >
-              <ArrowLeftIcon className="w-5 h-5 mr-2" />
-              Kembali
-            </Button>
-            <div>
-              <h1 className="text-3xl font-bold bg-gradient-to-r from-cyan-400 to-blue-400 bg-clip-text text-transparent">
-                Kalender Aktivitas
-              </h1>
-              <p className="text-gray-400 mt-1">Lihat aktivitas dalam tampilan kalender</p>
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 sm:gap-0 mb-6">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 sm:gap-4">
+              <button
+                onClick={() => navigate('/dashboard')}
+                className="flex items-center gap-2 px-5 py-2 rounded-xl glass-effect border border-cyan-400/30 text-cyan-200 font-semibold shadow-md hover:bg-cyan-700/20 hover:text-white transition w-full sm:w-auto"
+              >
+                Kembali
+              </button>
+              <div>
+                <h1 className="text-2xl sm:text-4xl font-extrabold bg-gradient-to-r from-cyan-400 to-blue-400 bg-clip-text text-transparent mb-1 drop-shadow-lg">Kalender Aktivitas</h1>
+                <div className="text-cyan-200 text-sm sm:text-lg font-medium opacity-80">Lihat aktivitas dalam tampilan kalender</div>
+              </div>
             </div>
           </div>
-        </motion.div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* Calendar */}
-          <motion.div
-            initial={{ opacity: 0, x: -20 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ delay: 0.2 }}
-            className="lg:col-span-2"
-          >
-            <Card>
-              {/* Calendar Header */}
-              <div className="flex items-center justify-between mb-6">
-                <h2 className="text-2xl font-bold text-white">{monthName}</h2>
-                <div className="flex space-x-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => navigateMonth('prev')}
-                    className="border-gray-600/50 text-gray-300"
-                  >
-                    <ChevronLeftIcon className="w-4 h-4" />
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => navigateMonth('next')}
-                    className="border-gray-600/50 text-gray-300"
-                  >
-                    <ChevronRightIcon className="w-4 h-4" />
-                  </Button>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-7 gap-2 mb-4">
-                {['Min', 'Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab'].map(day => (
-                  <div key={day} className="text-center text-sm font-medium text-gray-400 py-2">
-                    {day}
-                  </div>
-                ))}
-              </div>
-
-              {/* Calendar Grid */}
-              <div className="grid grid-cols-7 gap-2">
-                {days.map((day, index) => {
-                  if (!day) {
-                    return <div key={index} className="h-16" />;
-                  }
-
-                  const dayActivities = getActivitiesForDate(day);
-                  const isSelected = selectedDate?.toDateString() === day.toDateString();
-                  const isToday = day.toDateString() === new Date().toDateString();
-
-                  return (
-                    <motion.button
-                      key={day.toISOString()}
-                      whileHover={{ scale: 1.05 }}
-                      whileTap={{ scale: 0.95 }}
-                      onClick={() => setSelectedDate(day)}
-                      className={`h-16 rounded-lg border transition-all duration-200 relative ${
-                        isSelected 
-                          ? 'border-cyan-400 bg-cyan-500/20' 
-                          : dayActivities.length > 0
-                          ? getDayColor(dayActivities)
-                          : 'border-gray-700/50 hover:border-gray-600/50'
-                      } ${isToday ? 'ring-2 ring-cyan-400/50' : ''}`}
-                    >
-                      <div className="flex flex-col items-center justify-center h-full">
-                        <span className={`text-sm font-medium ${
-                          isSelected ? 'text-cyan-300' : 'text-gray-300'
-                        }`}>
-                          {day.getDate()}
-                        </span>
-                        {dayActivities.length > 0 && (
-                          <div className="flex items-center space-x-1 mt-1">
-                            <div className="w-1.5 h-1.5 bg-cyan-400 rounded-full" />
-                            <span className="text-xs text-cyan-300">{dayActivities.length}</span>
-                          </div>
-                        )}
-                      </div>
-                    </motion.button>
-                  );
-                })}
-              </div>
-            </Card>
-          </motion.div>
-
-          {/* Activity Details */}
-          <motion.div
-            initial={{ opacity: 0, x: 20 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ delay: 0.4 }}
-          >
-            <Card>
-              <h3 className="text-xl font-semibold text-white mb-6">
-                {selectedDate 
-                  ? `Aktivitas ${selectedDate.toLocaleDateString('id-ID', { day: 'numeric', month: 'long' })}`
-                  : 'Pilih Tanggal'
-                }
-              </h3>
-
-              {selectedDate ? (
-                <div>
-                  {selectedActivities.length > 0 && (
-                    <div className="space-y-4 mb-4">
-                      {selectedActivities.map((activity) => (
-                        <div key={activity.id} className="glass-effect rounded-lg p-4 border border-gray-700/50">
-                          <div className="flex items-start justify-between mb-3">
-                            <div className="flex-1">
-                              <h4 className="font-medium text-white mb-1">{activity.judul?.nama}</h4>
-                              <p className="text-sm text-cyan-300">{activity.subjudul?.nama}</p>
-                            </div>
-                            {/* Action Buttons */}
-                            <div className="flex gap-1">
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                className="border-cyan-500/50 text-cyan-300 text-xs px-2 py-1"
-                                onClick={() => handleEdit(activity)}
-                              >
-                                <PencilIcon className="w-3 h-3" />
-                              </Button>
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                className="border-blue-500/50 text-blue-300 text-xs px-2 py-1"
-                                onClick={() => handleDuplicate(activity)}
-                              >
-                                <DocumentDuplicateIcon className="w-3 h-3" />
-                              </Button>
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                className="border-red-500/50 text-red-300 text-xs px-2 py-1"
-                                onClick={() => handleDelete(activity.id)}
-                              >
-                                <TrashIcon className="w-3 h-3" />
-                              </Button>
-                            </div>
-                          </div>
-                          <p className="text-gray-300 text-sm mb-2">{activity.aktivitas}</p>
-                          {activity.deskripsi && (
-                            <p className="text-gray-400 text-xs">{activity.deskripsi}</p>
-                          )}
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                  
-                  {selectedActivities.length === 0 && (
-                    <div className="text-center py-8">
-                      <DocumentTextIcon className="w-12 h-12 text-gray-500 mx-auto mb-4" />
-                      <p className="text-gray-400">Tidak ada aktivitas pada tanggal ini</p>
-                    </div>
-                  )}
-                  
-                  <div className="text-center">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            {/* Calendar */}
+            <motion.div
+              initial={{ opacity: 0, x: -20 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ delay: 0.2 }}
+              className="lg:col-span-2"
+            >
+              <Card>
+                {/* Calendar Header */}
+                <div className="flex items-center justify-between mb-6">
+                  <h2 className="text-2xl font-bold text-white">{monthName}</h2>
+                  <div className="flex space-x-2">
                     <Button
-                      onClick={() => {
-                        if (selectedDate) {
-                          const year = selectedDate.getFullYear();
-                          const month = String(selectedDate.getMonth() + 1).padStart(2, '0');
-                          const day = String(selectedDate.getDate()).padStart(2, '0');
-                          const dateString = `${year}-${month}-${day}`;
-                          navigate('/karyawan/tambah', { state: { selectedDate: dateString } });
-                        }
-                      }}
-                      className="bg-gradient-to-r from-green-500 to-teal-600"
+                      variant="outline"
                       size="sm"
+                      onClick={() => navigateMonth('prev')}
+                      className="border-gray-600/50 text-gray-300"
                     >
-                      Tambah Aktivitas
+                      <ChevronLeftIcon className="w-4 h-4" />
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => navigateMonth('next')}
+                      className="border-gray-600/50 text-gray-300"
+                    >
+                      <ChevronRightIcon className="w-4 h-4" />
                     </Button>
                   </div>
                 </div>
-              ) : (
-                <div className="text-center py-8">
-                  <CalendarIcon className="w-12 h-12 text-gray-500 mx-auto mb-4" />
-                  <p className="text-gray-400">Klik pada tanggal untuk melihat aktivitas</p>
-                </div>
-              )}
-            </Card>
 
-            {/* Monthly Summary */}
-            <Card className="mt-6">
-              <h3 className="text-lg font-semibold text-white mb-4">Ringkasan Bulan Ini</h3>
-              <div className="space-y-3">
-                <div className="flex justify-between items-center">
-                  <span className="text-gray-400">Total Aktivitas</span>
-                  <span className="text-cyan-400 font-medium">{aktivitas.length}</span>
+                <div className="grid grid-cols-7 gap-2 mb-4">
+                  {['Min', 'Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab'].map(day => (
+                    <div key={day} className="text-center text-sm font-medium text-gray-400 py-2">
+                      {day}
+                    </div>
+                  ))}
                 </div>
-                <div className="flex justify-between items-center">
-                  <span className="text-gray-400">Total Poin</span>
-                  <span className={`font-medium ${user?.can_view_poin ? 'text-green-400' : 'text-gray-500'}`}>
-                    {user?.can_view_poin ? aktivitas.reduce((sum, act) => sum + (act.poin || 0), 0) : '-'}
-                  </span>
+
+                {/* Calendar Grid */}
+                <div className="grid grid-cols-7 gap-2">
+                  {days.map((day, index) => {
+                    if (!day) {
+                      return <div key={index} className="h-16" />;
+                    }
+
+                    const dayActivities = getActivitiesForDate(day);
+                    const isSelected = selectedDate?.toDateString() === day.toDateString();
+                    const isToday = day.toDateString() === new Date().toDateString();
+
+                    return (
+                      <motion.button
+                        key={day.toISOString()}
+                        whileHover={{ scale: 1.05 }}
+                        whileTap={{ scale: 0.95 }}
+                        onClick={() => setSelectedDate(day)}
+                        className={`h-16 rounded-lg border transition-all duration-200 relative ${
+                          isSelected 
+                            ? 'border-cyan-400 bg-cyan-500/20' 
+                            : dayActivities.length > 0
+                            ? getDayColor(dayActivities)
+                            : 'border-gray-700/50 hover:border-gray-600/50'
+                        } ${isToday ? 'ring-2 ring-cyan-400/50' : ''}`}
+                      >
+                        <div className="flex flex-col items-center justify-center h-full">
+                          <span className={`text-sm font-medium ${
+                            isSelected ? 'text-cyan-300' : 'text-gray-300'
+                          }`}>
+                            {day.getDate()}
+                          </span>
+                          {dayActivities.length > 0 && (
+                            <div className="flex items-center space-x-1 mt-1">
+                              <div className="w-1.5 h-1.5 bg-cyan-400 rounded-full" />
+                              <span className="text-xs text-cyan-300">{dayActivities.length}</span>
+                            </div>
+                          )}
+                        </div>
+                      </motion.button>
+                    );
+                  })}
                 </div>
-                <div className="flex justify-between items-center">
-                  <span className="text-gray-400">Hari Aktif</span>
-                  <span className="text-purple-400 font-medium">
-                    {new Set(aktivitas.map(act => new Date(act.tanggal).toDateString())).size}
-                  </span>
+              </Card>
+            </motion.div>
+
+            {/* Activity Details */}
+            <motion.div
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ delay: 0.4 }}
+            >
+              <Card>
+                <h3 className="text-xl font-semibold text-white mb-6">
+                  {selectedDate 
+                    ? `Aktivitas ${selectedDate.toLocaleDateString('id-ID', { day: 'numeric', month: 'long' })}`
+                    : 'Pilih Tanggal'
+                  }
+                </h3>
+
+                {selectedDate ? (
+                  <div>
+                    {selectedActivities.length > 0 && (
+                      <div className="space-y-4 mb-4">
+                        {selectedActivities.map((activity) => (
+                          <div key={activity.id} className="glass-effect rounded-lg p-4 border border-gray-700/50">
+                            <div className="flex items-start justify-between mb-3">
+                              <div className="flex-1">
+                                <h4 className="font-medium text-white mb-1">{activity.judul?.nama}</h4>
+                                <p className="text-sm text-cyan-300">{activity.subjudul?.nama}</p>
+                              </div>
+                              {/* Action Buttons */}
+                              <div className="flex gap-1">
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  className="border-cyan-500/50 text-cyan-300 text-xs px-2 py-1"
+                                  onClick={() => handleEdit(activity)}
+                                >
+                                  <PencilIcon className="w-3 h-3" />
+                                </Button>
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  className="border-blue-500/50 text-blue-300 text-xs px-2 py-1"
+                                  onClick={() => handleDuplicate(activity)}
+                                >
+                                  <DocumentDuplicateIcon className="w-3 h-3" />
+                                </Button>
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  className="border-red-500/50 text-red-300 text-xs px-2 py-1"
+                                  onClick={() => handleDelete(activity.id)}
+                                >
+                                  <TrashIcon className="w-3 h-3" />
+                                </Button>
+                              </div>
+                            </div>
+                            <p className="text-gray-300 text-sm mb-2">{activity.aktivitas}</p>
+                            {activity.deskripsi && (
+                              <p className="text-gray-400 text-xs">{activity.deskripsi}</p>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                    
+                    {selectedActivities.length === 0 && (
+                      <div className="text-center py-8">
+                        <DocumentTextIcon className="w-12 h-12 text-gray-500 mx-auto mb-4" />
+                        <p className="text-gray-400">Tidak ada aktivitas pada tanggal ini</p>
+                      </div>
+                    )}
+                    
+                    <div className="text-center">
+                      <Button
+                        onClick={() => {
+                          if (selectedDate) {
+                            const year = selectedDate.getFullYear();
+                            const month = String(selectedDate.getMonth() + 1).padStart(2, '0');
+                            const day = String(selectedDate.getDate()).padStart(2, '0');
+                            const dateString = `${year}-${month}-${day}`;
+                            navigate('/karyawan/tambah', { state: { selectedDate: dateString } });
+                          }
+                        }}
+                        className="bg-gradient-to-r from-green-500 to-teal-600"
+                        size="sm"
+                      >
+                        Tambah Aktivitas
+                      </Button>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="text-center py-8">
+                    <CalendarIcon className="w-12 h-12 text-gray-500 mx-auto mb-4" />
+                    <p className="text-gray-400">Klik pada tanggal untuk melihat aktivitas</p>
+                  </div>
+                )}
+              </Card>
+
+              {/* Monthly Summary */}
+              <Card className="mt-6">
+                <h3 className="text-lg font-semibold text-white mb-4">Ringkasan Bulan Ini</h3>
+                <div className="space-y-3">
+                  <div className="flex justify-between items-center">
+                    <span className="text-gray-400">Total Aktivitas</span>
+                    <span className="text-cyan-400 font-medium">{aktivitas.length}</span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-gray-400">Total Poin</span>
+                    <span className={`font-medium ${user?.can_view_poin ? 'text-green-400' : 'text-gray-500'}`}>
+                      {user?.can_view_poin ? aktivitas.reduce((sum, act) => sum + (act.poin || 0), 0) : '-'}
+                    </span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-gray-400">Hari Aktif</span>
+                    <span className="text-purple-400 font-medium">
+                      {new Set(aktivitas.map(act => new Date(act.tanggal).toDateString())).size}
+                    </span>
+                  </div>
                 </div>
-              </div>
-            </Card>
-          </motion.div>
-        </div>
+              </Card>
+            </motion.div>
+          </div>
+        </motion.div>
       </div>
 
       {/* Edit Modal */}

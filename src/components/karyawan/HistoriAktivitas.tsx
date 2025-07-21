@@ -8,7 +8,8 @@ import {
   StarIcon,
   PencilIcon,
   TrashIcon,
-  DocumentDuplicateIcon
+  DocumentDuplicateIcon,
+  DocumentIcon
 } from '@heroicons/react/24/outline';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '../ui/Button';
@@ -170,21 +171,17 @@ export const HistoriAktivitas: React.FC = () => {
           animate={{ opacity: 1, y: 0 }}
           className="mb-8"
         >
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-4">
-              <Button
-                variant="outline"
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 sm:gap-0 mb-6">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 sm:gap-4">
+              <button
                 onClick={() => navigate('/dashboard')}
-                className="border-cyan-500/50 text-cyan-300"
+                className="flex items-center gap-2 px-5 py-2 rounded-xl glass-effect border border-cyan-400/30 text-cyan-200 font-semibold shadow-md hover:bg-cyan-700/20 hover:text-white transition w-full sm:w-auto"
               >
-                <ArrowLeftIcon className="w-5 h-5 mr-2" />
                 Kembali
-              </Button>
+              </button>
               <div>
-                <h1 className="text-3xl font-bold bg-gradient-to-r from-cyan-400 to-blue-400 bg-clip-text text-transparent">
-                  Histori Aktivitas
-                </h1>
-                <p className="text-gray-400 mt-1">Lihat aktivitas yang sudah dicatat</p>
+                <h1 className="text-2xl sm:text-4xl font-extrabold bg-gradient-to-r from-cyan-400 to-blue-400 bg-clip-text text-transparent mb-1 drop-shadow-lg">Histori Aktivitas</h1>
+                <div className="text-cyan-200 text-sm sm:text-lg font-medium opacity-80">Lihat aktivitas yang sudah dicatat</div>
               </div>
             </div>
             
@@ -263,7 +260,12 @@ export const HistoriAktivitas: React.FC = () => {
         </div>
 
         {/* Activities List */}
-        <div className="space-y-6">
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.3 }}
+          className="space-y-6"
+        >
           {aktivitas.map((item, index) => (
             <motion.div
               key={item.id}
@@ -317,50 +319,47 @@ export const HistoriAktivitas: React.FC = () => {
                       )}
                     </div>
                   </div>
-
-                  <div className="ml-6 flex flex-col items-end space-y-4">
-                    {/* Action Buttons */}
-                    <div className="flex gap-2 mt-2">
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        className="border-cyan-500/50 text-cyan-300 text-xs px-2 py-1"
-                        onClick={() => {
-                          setEditItem(item);
-                          setEditForm({
-                            tanggal: item.tanggal,
-                            judul_id: item.judul_id,
-                            subjudul_id: item.subjudul_id,
-                            aktivitas: item.aktivitas,
-                            deskripsi: item.deskripsi || ''
-                          });
-                        }}
-                      >
-                        <PencilIcon className="w-4 h-4 mr-1" /> Edit
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        className="border-blue-500/50 text-blue-300 text-xs px-2 py-1"
-                        onClick={() => handleDuplicate(item)}
-                      >
-                        <DocumentDuplicateIcon className="w-4 h-4 mr-1" /> Duplicate
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        className="border-red-500/50 text-red-300 text-xs px-2 py-1"
-                        onClick={() => handleDelete(item.id)}
-                      >
-                        <TrashIcon className="w-4 h-4 mr-1" /> Hapus
-                      </Button>
-                    </div>
-                  </div>
+                </div>
+                {/* Action Buttons di bawah isi card */}
+                <div className="flex flex-wrap sm:flex-nowrap gap-2 mt-4 w-full justify-end border-t border-cyan-500/10 pt-4">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="border-cyan-500/50 text-cyan-300 text-xs px-2 py-1"
+                    onClick={() => {
+                      setEditItem(item);
+                      setEditForm({
+                        tanggal: item.tanggal,
+                        judul_id: item.judul_id,
+                        subjudul_id: item.subjudul_id,
+                        aktivitas: item.aktivitas,
+                        deskripsi: item.deskripsi || ''
+                      });
+                    }}
+                  >
+                    <PencilIcon className="w-4 h-4 mr-1" /> Edit
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="border-blue-500/50 text-blue-300 text-xs px-2 py-1"
+                    onClick={() => handleDuplicate(item)}
+                  >
+                    <DocumentDuplicateIcon className="w-4 h-4 mr-1" /> Duplicate
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="border-red-500/50 text-red-300 text-xs px-2 py-1"
+                    onClick={() => handleDelete(item.id)}
+                  >
+                    <TrashIcon className="w-4 h-4 mr-1" /> Hapus
+                  </Button>
                 </div>
               </Card>
             </motion.div>
           ))}
-        </div>
+        </motion.div>
 
         {aktivitas.length === 0 && (
           <motion.div

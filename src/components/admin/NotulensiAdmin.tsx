@@ -7,6 +7,8 @@ import { Document, Packer, Paragraph } from 'docx';
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeftIcon, PencilIcon, TrashIcon, DocumentDuplicateIcon, ArrowDownTrayIcon, ChevronDownIcon, ChevronUpIcon, DocumentTextIcon } from '@heroicons/react/24/outline';
 import { Card } from '../ui/Card';
+import { Button } from '../ui/Button';
+import { motion } from 'framer-motion';
 
 const SESSIONS = [
   'Paparan Pendahuluan',
@@ -143,19 +145,30 @@ const NotulensiAdmin: React.FC = () => {
         <DocumentTextIcon className="w-64 h-64 text-cyan-400" />
       </div>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
-        <div className="flex items-center gap-4 mb-8">
-          <button
-            onClick={() => navigate('/dashboard')}
-            className="flex items-center gap-2 px-5 py-2 rounded-xl glass-effect border border-cyan-400/30 text-cyan-200 font-semibold shadow-md hover:bg-cyan-700/20 hover:text-white transition"
-          >
-            <ArrowLeftIcon className="w-5 h-5" />
-            Kembali
-          </button>
-          <div>
-            <h1 className="text-4xl font-extrabold bg-gradient-to-r from-cyan-400 to-blue-400 bg-clip-text text-transparent mb-1 drop-shadow-lg">Manajemen Notulensi</h1>
-            <div className="text-cyan-200 text-lg font-medium opacity-80">Kelola dan review seluruh notulensi kegiatan karyawan</div>
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="mb-8"
+        >
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 sm:gap-0">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 sm:gap-4">
+              <Button
+                variant="outline"
+                onClick={() => navigate('/dashboard')}
+                className="border-cyan-500/50 text-cyan-300 w-full sm:w-auto"
+              >
+                <ArrowLeftIcon className="w-5 h-5 mr-2" />
+                Kembali
+              </Button>
+              <div>
+                <h1 className="text-2xl sm:text-3xl font-bold bg-gradient-to-r from-cyan-400 to-blue-400 bg-clip-text text-transparent">
+                  Notulensi Admin
+                </h1>
+                <p className="text-gray-400 mt-1 text-sm sm:text-base">Lihat dan kelola hasil notulensi kegiatan</p>
+              </div>
+            </div>
           </div>
-        </div>
+        </motion.div>
         {/* Filter */}
         <div className="flex flex-wrap gap-4 mb-8">
           <select className="px-4 py-2 glass-effect border border-cyan-400/30 rounded-lg text-white bg-slate-800/50 focus:outline-none focus:ring-2 focus:ring-cyan-400 [&>option]:bg-slate-800 [&>option]:text-white" value={filter.judul} onChange={e => setFilter(f => ({ ...f, judul: e.target.value, subjudul: '' }))}>
@@ -227,7 +240,7 @@ const NotulensiAdmin: React.FC = () => {
                     <div className="text-sm text-cyan-100 mb-1">Sesi: {n.sesi} | Tanggal: {n.tanggal}</div>
                     <div className="text-sm text-cyan-300">Diedit oleh: {n.user?.nama}</div>
                   </div>
-                  <div className="flex items-center gap-2">
+                  <div className="flex flex-row flex-wrap gap-2 justify-end w-full sm:w-auto">
                     <button title="Edit" className="p-2 rounded hover:bg-cyan-700/30" onClick={e => {e.stopPropagation(); navigate('/karyawan/notulensi', { state: { editData: n } });}}><PencilIcon className="w-5 h-5 text-yellow-400" /></button>
                     <button title="Hapus" className="p-2 rounded hover:bg-red-700/30" onClick={async e => {e.stopPropagation(); if(window.confirm('Yakin hapus notulensi ini?')){ await deleteNotulensi(n.id); fetchNotulensi(); }}}><TrashIcon className="w-5 h-5 text-red-400" /></button>
                     <button title="Copy" className="p-2 rounded hover:bg-gray-700/30" onClick={e => {e.stopPropagation(); handleCopy(n);}}><DocumentDuplicateIcon className="w-5 h-5 text-gray-200" /></button>

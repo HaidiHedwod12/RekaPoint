@@ -314,21 +314,21 @@ export const ProfilKaryawan: React.FC = () => {
           animate={{ opacity: 1, y: 0 }}
           className="mb-8"
         >
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-4">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 sm:gap-0">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 sm:gap-4">
               <Button
                 variant="outline"
                 onClick={() => navigate('/dashboard')}
-                className="border-cyan-500/50 text-cyan-300"
+                className="border-cyan-500/50 text-cyan-300 w-full sm:w-auto"
               >
                 <ArrowLeftIcon className="w-5 h-5 mr-2" />
                 Kembali
               </Button>
               <div>
-                <h1 className="text-3xl font-bold bg-gradient-to-r from-cyan-400 to-blue-400 bg-clip-text text-transparent">
+                <h1 className="text-2xl sm:text-3xl font-bold bg-gradient-to-r from-cyan-400 to-blue-400 bg-clip-text text-transparent">
                   Profil Karyawan
                 </h1>
-                <p className="text-gray-400 mt-1">Kelola informasi dan dokumen karyawan</p>
+                <p className="text-gray-400 mt-1 text-sm sm:text-base">Kelola informasi dan dokumen karyawan</p>
               </div>
             </div>
           </div>

@@ -117,54 +117,52 @@ export const AdminDashboard: React.FC = () => {
   return (
     <div className="min-h-screen py-8 relative">
       {/* Background elements */}
-      <div className="fixed top-32 right-20 opacity-10">
-        <MapIcon className="w-64 h-64 text-cyan-400" />
+      <div className="fixed top-32 right-20 opacity-10 hidden sm:block">
+        <MapIcon className="w-32 h-32 sm:w-64 sm:h-64 text-cyan-400" />
       </div>
-      <div className="fixed bottom-20 left-20 opacity-10">
-        <ChartBarIcon className="w-48 h-48 text-blue-400" />
+      <div className="fixed bottom-20 left-20 opacity-10 hidden sm:block">
+        <ChartBarIcon className="w-24 h-24 sm:w-48 sm:h-48 text-blue-400" />
       </div>
-      <div className="fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 opacity-5">
-        <GlobeAltIcon className="w-96 h-96 text-cyan-300" />
+      <div className="fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 opacity-5 hidden sm:block">
+        <GlobeAltIcon className="w-48 h-48 sm:w-96 sm:h-96 text-cyan-300" />
       </div>
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
+      <div className="max-w-7xl mx-auto px-2 sm:px-4 lg:px-8 relative z-10">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="text-center mb-12"
+          className="text-center mb-6 sm:mb-12 pt-2 sm:pt-8"
         >
           <motion.div
             initial={{ scale: 0 }}
             animate={{ scale: 1 }}
-            transition={{ delay: 0.2, type: "spring", stiffness: 200 }}
-            className="inline-flex items-center justify-center w-20 h-20 bg-gradient-to-br from-cyan-500 to-blue-600 rounded-full mb-6 pulse-glow"
+            transition={{ delay: 0.2, type: 'spring', stiffness: 200 }}
+            className="inline-flex items-center justify-center w-12 h-12 sm:w-20 sm:h-20 bg-gradient-to-br from-cyan-500 to-blue-600 rounded-full mb-2 sm:mb-6 pulse-glow"
           >
-            <BuildingOfficeIcon className="w-10 h-10 text-white" />
+            <BuildingOfficeIcon className="w-8 h-8 sm:w-10 sm:h-10 text-white" />
           </motion.div>
-          
-          <h1 className="text-4xl font-bold bg-gradient-to-r from-cyan-400 to-blue-400 bg-clip-text text-transparent mb-4">
+          <h1 className="text-xl sm:text-4xl font-bold bg-gradient-to-r from-cyan-400 to-blue-400 bg-clip-text text-transparent mb-1 sm:mb-4">
             Selamat Datang, {user?.nama}
           </h1>
-          <p className="text-xl text-gray-300 mb-2">
+          <p className="text-base sm:text-xl text-gray-300 mb-1 sm:mb-2">
             Panel Admin RekaPoint
           </p>
-          <p className="text-gray-400">
+          <p className="text-gray-400 text-sm sm:text-base mb-2 sm:mb-0">
             Kelola sistem aktivitas karyawan PT Rekadwipa Teknika Studio
           </p>
-          
           <motion.div
             initial={{ opacity: 0, scale: 0.8 }}
             animate={{ opacity: 1, scale: 1 }}
             transition={{ delay: 0.4 }}
-            className="mt-6 inline-flex items-center space-x-2 glass-effect px-6 py-3 rounded-full border border-cyan-500/30"
+            className="mt-2 sm:mt-6 inline-flex items-center space-x-2 glass-effect px-4 sm:px-6 py-2 sm:py-3 rounded-full border border-cyan-500/30"
           >
             <MapIcon className="w-5 h-5 text-cyan-400" />
-            <span className="text-cyan-300 font-medium">GIS & Survey Management System</span>
+            <span className="text-cyan-300 font-medium text-xs sm:text-base">Rekadwipa Management System</span>
           </motion.div>
         </motion.div>
 
         {/* Menu Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 mb-12">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-8 mb-8 sm:mb-12">
           {menuItems.map((item, index) => (
             <motion.div
               key={item.title}
@@ -178,11 +176,11 @@ export const AdminDashboard: React.FC = () => {
         </div>
 
         {/* Filter Bulan & Tahun */}
-        <div className="flex flex-wrap items-center justify-end gap-4 mb-8">
+        <div className="flex flex-wrap items-center justify-end gap-2 sm:gap-4 mb-4 sm:mb-8">
           <select
             value={filter.month}
             onChange={e => setFilter({ ...filter, month: parseInt(e.target.value) })}
-            className="px-4 py-2 glass-effect border border-gray-600/50 rounded-lg text-white bg-slate-800/50 focus:outline-none focus:ring-2 focus:ring-cyan-400 [&>option]:bg-slate-800 [&>option]:text-white"
+            className="px-2 sm:px-4 py-1 sm:py-2 glass-effect border border-gray-600/50 rounded-lg text-white bg-slate-800/50 focus:outline-none focus:ring-2 focus:ring-cyan-400 [&>option]:bg-slate-800 [&>option]:text-white"
           >
             {Array.from({ length: 12 }, (_, i) => (
               <option key={i + 1} value={i + 1} className="bg-slate-800 text-white">
@@ -193,7 +191,7 @@ export const AdminDashboard: React.FC = () => {
           <select
             value={filter.year}
             onChange={e => setFilter({ ...filter, year: parseInt(e.target.value) })}
-            className="px-4 py-2 glass-effect border border-gray-600/50 rounded-lg text-white bg-slate-800/50 focus:outline-none focus:ring-2 focus:ring-cyan-400 [&>option]:bg-slate-800 [&>option]:text-white"
+            className="px-2 sm:px-4 py-1 sm:py-2 glass-effect border border-gray-600/50 rounded-lg text-white bg-slate-800/50 focus:outline-none focus:ring-2 focus:ring-cyan-400 [&>option]:bg-slate-800 [&>option]:text-white"
           >
             {Array.from({ length: 5 }, (_, i) => (
               <option key={2025 + i} value={2025 + i} className="bg-slate-800 text-white">
@@ -208,7 +206,7 @@ export const AdminDashboard: React.FC = () => {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 1.2 }}
-          className="mt-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8"
+          className="mt-4 sm:mt-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-8"
         >
           <Card className="text-center">
             <div className="flex flex-col items-center">
