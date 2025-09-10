@@ -9,13 +9,15 @@ import {
   DocumentTextIcon,
   PencilIcon,
   DocumentDuplicateIcon,
-  TrashIcon
+  TrashIcon,
+  DocumentArrowDownIcon
 } from '@heroicons/react/24/outline';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '../ui/Button';
 import { Card } from '../ui/Card';
 import { useAuth } from '../../contexts/AuthContext';
 import { getAktivitasByUser } from '../../lib/database';
+import { exportActivitiesToExcel } from '../../lib/excelImport';
 import { subscribeToTable, unsubscribeFromTable } from '../../lib/database';
 import { Aktivitas } from '../../types';
 
@@ -204,6 +206,19 @@ export const Kalender: React.FC = () => {
     }
   };
 
+  const handleExportExcel = () => {
+    if (aktivitas.length === 0) {
+      alert('Tidak ada data aktivitas untuk diekspor!');
+      return;
+    }
+
+    const monthName = currentDate.toLocaleDateString('id-ID', { month: 'long' });
+    const year = currentDate.getFullYear();
+    const filename = `Aktivitas_${user?.nama}_${monthName}_${year}.xlsx`;
+    
+    exportActivitiesToExcel(aktivitas, filename);
+  };
+
   const days = getDaysInMonth(currentDate);
   const monthName = currentDate.toLocaleDateString('id-ID', { month: 'long', year: 'numeric' });
   const selectedActivities = selectedDate ? getActivitiesForDate(selectedDate) : [];
@@ -242,6 +257,18 @@ export const Kalender: React.FC = () => {
                 <h1 className="text-2xl sm:text-4xl font-extrabold bg-gradient-to-r from-cyan-400 to-blue-400 bg-clip-text text-transparent mb-1 drop-shadow-lg">Kalender Aktivitas</h1>
                 <div className="text-cyan-200 text-sm sm:text-lg font-medium opacity-80">Lihat aktivitas dalam tampilan kalender</div>
               </div>
+            </div>
+            
+            <div className="flex justify-end">
+              <Button
+                onClick={handleExportExcel}
+                variant="outline" 
+                className="border-green-500/50 text-green-300"
+                disabled={aktivitas.length === 0}
+              >
+                <DocumentArrowDownIcon className="w-5 h-5 mr-2" />
+                Export Excel
+              </Button>
             </div>
           </div>
 

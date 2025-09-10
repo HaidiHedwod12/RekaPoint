@@ -32,6 +32,8 @@ export const ImportAktivitas: React.FC = () => {
     subjuduls: SubJudul[];
   } | null>(null);
   const [loadingDatabase, setLoadingDatabase] = useState(true);
+  const [selectedMonth, setSelectedMonth] = useState<number>(new Date().getMonth() + 1);
+  const [selectedYear, setSelectedYear] = useState<number>(new Date().getFullYear());
 
   useEffect(() => {
     loadDatabaseData();
@@ -111,6 +113,8 @@ export const ImportAktivitas: React.FC = () => {
       const importResult = await importActivitiesToDatabase(
         validationResult.valid,
         user,
+        selectedMonth,
+        selectedYear,
         (current, total) => {
           setProgress({ current, total });
         }
@@ -187,15 +191,14 @@ export const ImportAktivitas: React.FC = () => {
                   <p><strong>Format file:</strong> Excel (.xlsx atau .xls)</p>
                   <p><strong>Struktur kolom (baris pertama adalah header):</strong></p>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm bg-slate-800/50 p-4 rounded-lg">
-                    <div>• <strong>Kolom A:</strong> Tanggal (DD/MM/YYYY)</div>
-                    <div>• <strong>Kolom B:</strong> Nama Karyawan (harus terdaftar)</div>
-                    <div>• <strong>Kolom C:</strong> Judul (harus ada di database)</div>
-                    <div>• <strong>Kolom D:</strong> Sub Judul (harus ada di database)</div>
-                    <div>• <strong>Kolom E:</strong> Aktivitas (bebas)</div>
-                    <div>• <strong>Kolom F:</strong> Deskripsi (opsional)</div>
+                    <div>• <strong>Kolom A:</strong> Nama (Nama Karyawan yang terdaftar)</div>
+                    <div>• <strong>Kolom B:</strong> Tanggal (angka tanggal saja, contoh: 1, 15, 29)</div>
+                    <div>• <strong>Kolom C:</strong> Tipe (Judul yang terdaftar di DB)</div>
+                    <div>• <strong>Kolom D:</strong> Project (Sub Judul yang terdaftar di DB)</div>
+                    <div>• <strong>Kolom E:</strong> Aktivitas (bebas diisi apa saja)</div>
                   </div>
                   <p className="text-yellow-300">
-                    <strong>Penting:</strong> Nama Karyawan, Judul, dan Sub Judul harus sesuai dengan data yang ada di database
+                    <strong>Penting:</strong> Nama, Tipe, dan Project harus sesuai dengan data yang ada di database
                   </p>
                   {databaseData && (
                     <div className="mt-4 space-y-2 text-sm">
@@ -237,6 +240,55 @@ export const ImportAktivitas: React.FC = () => {
             <h3 className="text-xl font-semibold text-white mb-6">Upload File Excel</h3>
             
             <div className="space-y-6">
+              {/* Month and Year Selection */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-300 mb-2">
+                    Pilih Bulan
+                  </label>
+                  <select
+                    value={selectedMonth}
+                    onChange={(e) => setSelectedMonth(parseInt(e.target.value))}
+                    className="w-full px-4 py-3 glass-effect border border-gray-600/50 rounded-lg text-white bg-gray-800/50 focus:outline-none focus:ring-2 focus:ring-cyan-400"
+                    disabled={loadingDatabase}
+                  >
+                    <option value={1}>Januari</option>
+                    <option value={2}>Februari</option>
+                    <option value={3}>Maret</option>
+                    <option value={4}>April</option>
+                    <option value={5}>Mei</option>
+                    <option value={6}>Juni</option>
+                    <option value={7}>Juli</option>
+                    <option value={8}>Agustus</option>
+                    <option value={9}>September</option>
+                    <option value={10}>Oktober</option>
+                    <option value={11}>November</option>
+                    <option value={12}>Desember</option>
+                  </select>
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-medium text-gray-300 mb-2">
+                    Pilih Tahun
+                  </label>
+                  <select
+                    value={selectedYear}
+                    onChange={(e) => setSelectedYear(parseInt(e.target.value))}
+                    className="w-full px-4 py-3 glass-effect border border-gray-600/50 rounded-lg text-white bg-gray-800/50 focus:outline-none focus:ring-2 focus:ring-cyan-400"
+                    disabled={loadingDatabase}
+                  >
+                    {Array.from({ length: 10 }, (_, i) => {
+                      const year = new Date().getFullYear() - 5 + i;
+                      return (
+                        <option key={year} value={year}>
+                          {year}
+                        </option>
+                      );
+                    })}
+                  </select>
+                </div>
+              </div>
+              
               <div>
                 <label className="block text-sm font-medium text-gray-300 mb-2">
                   Pilih File Excel
@@ -249,6 +301,9 @@ export const ImportAktivitas: React.FC = () => {
                   className="w-full px-4 py-3 glass-effect border border-gray-600/50 rounded-lg text-white file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-cyan-500 file:text-white hover:file:bg-cyan-600 focus:outline-none focus:ring-2 focus:ring-cyan-400"
                   disabled={loadingDatabase}
                 />
+                <p className="text-sm text-gray-400 mt-2">
+                  Data akan diimport untuk bulan <strong>{new Intl.DateTimeFormat('id-ID', { month: 'long' }).format(new Date(2024, selectedMonth - 1))}</strong> tahun <strong>{selectedYear}</strong>
+                </p>
               </div>
 
               {file && (
@@ -275,20 +330,20 @@ export const ImportAktivitas: React.FC = () => {
                 <table className="w-full text-sm">
                   <thead>
                     <tr className="border-b border-gray-700">
-                      <th className="text-left py-2 px-3 text-gray-300">Tanggal</th>
                       <th className="text-left py-2 px-3 text-gray-300">Nama</th>
-                      <th className="text-left py-2 px-3 text-gray-300">Judul</th>
-                      <th className="text-left py-2 px-3 text-gray-300">Sub Judul</th>
+                      <th className="text-left py-2 px-3 text-gray-300">Tanggal</th>
+                      <th className="text-left py-2 px-3 text-gray-300">Tipe</th>
+                      <th className="text-left py-2 px-3 text-gray-300">Project</th>
                       <th className="text-left py-2 px-3 text-gray-300">Aktivitas</th>
                     </tr>
                   </thead>
                   <tbody>
                     {previewData.map((row, index) => (
                       <tr key={index} className="border-b border-gray-800">
+                        <td className="py-2 px-3 text-gray-300">{row.nama}</td>
                         <td className="py-2 px-3 text-gray-300">{row.tanggal}</td>
-                        <td className="py-2 px-3 text-gray-300">{row.namaKaryawan}</td>
-                        <td className="py-2 px-3 text-gray-300">{row.judul}</td>
-                        <td className="py-2 px-3 text-gray-300">{row.subJudul}</td>
+                        <td className="py-2 px-3 text-gray-300">{row.tipe}</td>
+                        <td className="py-2 px-3 text-gray-300">{row.project}</td>
                         <td className="py-2 px-3 text-gray-300 max-w-xs truncate">{row.aktivitas}</td>
                       </tr>
                     ))}
@@ -338,7 +393,7 @@ export const ImportAktivitas: React.FC = () => {
                       <div key={index} className="bg-red-500/10 border border-red-500/30 rounded-lg p-3">
                         <div className="text-red-300 font-medium">Baris {item.row}: {item.error}</div>
                         <div className="text-gray-400 text-sm mt-1">
-                          {item.data.tanggal} | {item.data.namaKaryawan} | {item.data.judul} | {item.data.aktivitas}
+                          {item.data.nama} | {item.data.tanggal} | {item.data.tipe} | {item.data.aktivitas}
                         </div>
                       </div>
                     ))}

@@ -9,13 +9,15 @@ import {
   PencilIcon,
   TrashIcon,
   DocumentDuplicateIcon,
-  DocumentIcon
+  DocumentIcon,
+  DocumentArrowDownIcon
 } from '@heroicons/react/24/outline';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '../ui/Button';
 import { Card } from '../ui/Card';
 import { useAuth } from '../../contexts/AuthContext';
 import { getAktivitasByUser, deleteAktivitas, updateAktivitas, createAktivitas } from '../../lib/database';
+import { exportActivitiesToExcel } from '../../lib/excelImport';
 import { subscribeToTable, unsubscribeFromTable } from '../../lib/database';
 import { Aktivitas } from '../../types';
 import { format } from 'date-fns';
@@ -136,6 +138,18 @@ export const HistoriAktivitas: React.FC = () => {
     }
   };
 
+  const handleExportExcel = () => {
+    if (aktivitas.length === 0) {
+      alert('Tidak ada data aktivitas untuk diekspor!');
+      return;
+    }
+
+    const monthName = new Date(2024, filter.month - 1).toLocaleDateString('id-ID', { month: 'long' });
+    const filename = `Aktivitas_${user?.nama}_${monthName}_${filter.year}.xlsx`;
+    
+    exportActivitiesToExcel(aktivitas, filename);
+  };
+
   const getPoinColor = (poin: number) => {
     if (poin >= 80) return 'text-green-400';
     if (poin >= 60) return 'text-yellow-400';
@@ -209,6 +223,15 @@ export const HistoriAktivitas: React.FC = () => {
                   </option>
                 ))}
               </select>
+              <Button
+                onClick={handleExportExcel}
+                variant="outline" 
+                className="border-green-500/50 text-green-300"
+                disabled={aktivitas.length === 0}
+              >
+                <DocumentArrowDownIcon className="w-5 h-5 mr-2" />
+                Export Excel
+              </Button>
             </div>
           </div>
         </motion.div>
