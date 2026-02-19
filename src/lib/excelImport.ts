@@ -291,8 +291,10 @@ export const exportActivitiesToExcel = (aktivitasList: any[], filename?: string)
     // Extract day from date
     const tanggalObj = new Date(aktivitas.tanggal);
     const dayOnly = tanggalObj.getDate();
+    const no = dayOnly.toString().padStart(2, '0');
 
     return {
+      'No.': no,
       'Nama': aktivitas.user?.nama || aktivitas.nama_karyawan || '',
       'Tanggal': dayOnly.toString(),
       'Tipe': aktivitas.judul?.nama || '',
@@ -301,12 +303,16 @@ export const exportActivitiesToExcel = (aktivitasList: any[], filename?: string)
     };
   });
 
+  // Sort by No. ascending (alphabetical works because of zero-padding)
+  exportData.sort((a, b) => a['No.'].localeCompare(b['No.']));
+
   // Create workbook and worksheet
   const workbook = XLSX.utils.book_new();
   const worksheet = XLSX.utils.json_to_sheet(exportData);
 
   // Set column widths
   const colWidths = [
+    { wch: 5 },  // No.
     { wch: 20 }, // Nama
     { wch: 10 }, // Tanggal
     { wch: 20 }, // Tipe
