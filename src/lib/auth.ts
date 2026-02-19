@@ -1,18 +1,17 @@
-import { supabase, checkSupabaseConnection } from './supabase';
-import { supabaseAdmin, supabase as supabaseClient } from './supabase';
+import { supabase, supabaseAdmin, checkSupabaseConnection } from './supabase';
 import { User, AuthUser } from '../types';
 import Cookies from 'js-cookie';
 
 export const login = async (username: string, password: string): Promise<AuthUser> => {
   try {
     console.log('Attempting login for username:', username);
-    
+
     // First authenticate with Supabase Auth using email/password
-    const email = `${username.trim().toLowerCase()}@rekapoint.local`;
-    
+    // const email = `${username.trim().toLowerCase()}@rekapoint.local`;
+
     // Skip Supabase auth for now, use direct database login
     console.log('Using direct database login for:', username);
-    
+
     // Get user from database using admin client to bypass RLS
     const { data: userData, error: userError } = await supabaseAdmin
       .from('users')
@@ -33,7 +32,7 @@ export const login = async (username: string, password: string): Promise<AuthUse
     }
 
     console.log('User found, checking password...');
-    
+
     // Check password
     if (userData.password_hash !== password.trim()) {
       console.log('Password mismatch');
@@ -53,7 +52,7 @@ export const login = async (username: string, password: string): Promise<AuthUse
 
     const token = generateToken(userData);
     Cookies.set('auth_token', token, { expires: 7 });
-    
+
     return {
       user: userData,
       token

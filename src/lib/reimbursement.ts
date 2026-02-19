@@ -5,14 +5,6 @@ import { User } from '../types';
 // UTILITY FUNCTIONS
 // =====================================================
 
-// Generate a valid UUID v4
-const generateUUID = (): string => {
-  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
-    const r = Math.random() * 16 | 0;
-    const v = c === 'x' ? r : (r & 0x3 | 0x8);
-    return v.toString(16);
-  });
-};
 
 // Ensure user ID is a valid UUID
 const ensureValidUUID = (userId: string): string => {
@@ -21,7 +13,7 @@ const ensureValidUUID = (userId: string): string => {
   if (uuidRegex.test(userId)) {
     return userId;
   }
-  
+
   // If not valid UUID, generate a new one based on the user ID
   // This is a simple hash-based approach
   let hash = 0;
@@ -30,7 +22,7 @@ const ensureValidUUID = (userId: string): string => {
     hash = ((hash << 5) - hash) + char;
     hash = hash & hash; // Convert to 32-bit integer
   }
-  
+
   // Convert hash to UUID format
   const hashHex = Math.abs(hash).toString(16).padStart(8, '0');
   return `${hashHex}-0000-4000-8000-${hashHex}00000000`;
@@ -109,11 +101,11 @@ export const createReimbursementRequest = async (
   try {
     console.log('Creating reimbursement request for user:', user.id);
     console.log('User data:', user);
-    
+
     // Use user ID directly - it should already be a valid UUID from database
     console.log('Using user ID from auth:', user.id);
     console.log('User details:', user);
-    
+
     // Calculate total amount
     const totalAmount = request.items.reduce((sum, item) => sum + item.amount, 0);
 
@@ -162,11 +154,11 @@ export const getReimbursementRequestsByUser = async (
 ): Promise<ReimbursementRequest[]> => {
   try {
     console.log('Fetching reimbursement requests for user:', userId);
-    
+
     // Ensure user ID is a valid UUID
     const validUserId = ensureValidUUID(userId);
     console.log('Using valid UUID for user:', validUserId);
-    
+
     const { data, error } = await supabase
       .from('reimbursement_requests')
       .select(`
@@ -181,7 +173,7 @@ export const getReimbursementRequestsByUser = async (
       console.error('Database error:', error);
       throw error;
     }
-    
+
     console.log('Fetched data:', data);
     return data || [];
   } catch (error) {
@@ -207,7 +199,7 @@ export const getAllReimbursementRequests = async (): Promise<ReimbursementReques
       console.error('Database error:', error);
       throw error;
     }
-    
+
     console.log('Fetched reimbursement requests:', data);
     return data || [];
   } catch (error) {
@@ -278,7 +270,7 @@ export const updateReimbursementRequestByUser = async (
   try {
     console.log('Updating reimbursement request:', requestId, update);
     console.log('User:', user);
-    
+
     // Calculate total amount
     const totalAmount = update.items.reduce((sum, item) => sum + item.amount, 0);
     console.log('Total amount:', totalAmount);
@@ -465,8 +457,7 @@ export const uploadReimbursementFile = async (
     const fileName = `${Date.now()}-${Math.random().toString(36).substring(2)}.${fileExt}`;
     const filePath = `${userId}/${requestId}/${fileName}`;
 
-    // Upload file to storage
-    const { data: uploadData, error: uploadError } = await supabase.storage
+    const { error: uploadError } = await supabase.storage
       .from('reimbursement-receipts')
       .upload(filePath, file, {
         cacheControl: '3600',
@@ -535,7 +526,7 @@ export const getReimbursementFileUrl = (filePath: string): string => {
   const { data } = supabase.storage
     .from('reimbursement-receipts')
     .getPublicUrl(filePath);
-  
+
   return data.publicUrl;
 };
 
