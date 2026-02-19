@@ -1,0 +1,91 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  * {
+    @apply border-gray-600;
+  }
+  
+  body {
+    @apply text-gray-100;
+    font-family: 'Inter', sans-serif;
+    background: linear-gradient(135deg, #0f172a 0%, #1e293b 25%, #334155 50%, #1e293b 75%, #0f172a 100%);
+    background-size: 400% 400%;
+    animation: gradientShift 15s ease infinite;
+    min-height: 100vh;
+  }
+
+  @keyframes gradientShift {
+    0% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+    100% { background-position: 0% 50%; }
+  }
+}
+
+@layer components {
+  .glow-effect {
+    @apply shadow-lg shadow-cyan-500/20 hover:shadow-cyan-500/30 transition-shadow duration-300;
+  }
+  
+  .gradient-border {
+    @apply bg-gradient-to-r from-cyan-500 to-blue-600 p-px rounded-lg;
+  }
+
+  .glass-effect {
+    @apply bg-white/5 backdrop-blur-md border border-white/10;
+  }
+
+  .map-pattern {
+    background-image: 
+      radial-gradient(circle at 25% 25%, rgba(81, 228, 255, 0.1) 0%, transparent 50%),
+      radial-gradient(circle at 75% 75%, rgba(59, 130, 246, 0.1) 0%, transparent 50%),
+      linear-gradient(45deg, transparent 40%, rgba(81, 228, 255, 0.05) 50%, transparent 60%);
+  }
+
+  .floating-animation {
+    animation: float 6s ease-in-out infinite;
+  }
+
+  @keyframes float {
+    0%, 100% { transform: translateY(0px); }
+    50% { transform: translateY(-10px); }
+  }
+
+  .pulse-glow {
+    animation: pulseGlow 2s ease-in-out infinite alternate;
+  }
+
+  @keyframes pulseGlow {
+    from { box-shadow: 0 0 20px rgba(81, 228, 255, 0.3); }
+    to { box-shadow: 0 0 30px rgba(81, 228, 255, 0.6); }
+  }
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  @apply bg-slate-800/50;
+}
+
+::-webkit-scrollbar-thumb {
+  @apply bg-cyan-500/50 rounded-full;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  @apply bg-cyan-400/70;
+}
+
+/* Geometric patterns */
+.geometric-bg {
+  background-image: 
+    linear-gradient(30deg, rgba(81, 228, 255, 0.1) 12%, transparent 12.5%, transparent 87%, rgba(81, 228, 255, 0.1) 87.5%, rgba(81, 228, 255, 0.1)),
+    linear-gradient(150deg, rgba(81, 228, 255, 0.1) 12%, transparent 12.5%, transparent 87%, rgba(81, 228, 255, 0.1) 87.5%, rgba(81, 228, 255, 0.1)),
+    linear-gradient(30deg, rgba(81, 228, 255, 0.1) 12%, transparent 12.5%, transparent 87%, rgba(81, 228, 255, 0.1) 87.5%, rgba(81, 228, 255, 0.1)),
+    linear-gradient(150deg, rgba(81, 228, 255, 0.1) 12%, transparent 12.5%, transparent 87%, rgba(81, 228, 255, 0.1) 87.5%, rgba(81, 228, 255, 0.1));
+  background-size: 80px 140px;
+  background-position: 0 0, 0 0, 40px 70px, 40px 70px;
+}
