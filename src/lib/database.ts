@@ -454,11 +454,12 @@ export const getAktivitasByUser = async (userId: string, month?: number, year?: 
 
   console.log('User aktivitas fetched successfully:', data?.length);
   // Transform the data to match our expected structure
+  // Fallback ke snapshot nama jika judul/subjudul sudah dihapus
   return (data || []).map((item: any) => ({
     ...item,
     user: item.users,
-    judul: item.judul,
-    subjudul: item.subjudul
+    judul: item.judul || (item.judul_nama ? { id: null, nama: item.judul_nama } : null),
+    subjudul: item.subjudul || (item.subjudul_nama ? { id: null, nama: item.subjudul_nama } : null)
   }));
 };
 
@@ -496,21 +497,37 @@ export const getAllAktivitas = async (month?: number, year?: number): Promise<Ak
 
   console.log('All aktivitas fetched successfully:', data?.length);
   // Transform the data to match our expected structure
+  // Fallback ke snapshot nama jika judul/subjudul sudah dihapus
   return (data || []).map((item: any) => ({
     ...item,
     user: item.users,
-    judul: item.judul,
-    subjudul: item.subjudul
+    judul: item.judul || (item.judul_nama ? { id: null, nama: item.judul_nama } : null),
+    subjudul: item.subjudul || (item.subjudul_nama ? { id: null, nama: item.subjudul_nama } : null)
   }));
 };
 
 export const createAktivitas = async (aktivitasData: Omit<Aktivitas, 'id' | 'created_at' | 'updated_at' | 'user' | 'judul' | 'subjudul'>): Promise<Aktivitas> => {
   console.log('Creating aktivitas:', aktivitasData);
 
+  // Fetch nama judul & subjudul untuk disimpan sebagai snapshot
+  let judul_nama = aktivitasData.judul_nama;
+  let subjudul_nama = aktivitasData.subjudul_nama;
+
+  if (!judul_nama && aktivitasData.judul_id) {
+    const { data: judulData } = await supabaseAdmin
+      .from('judul').select('nama').eq('id', aktivitasData.judul_id).single();
+    judul_nama = judulData?.nama || '';
+  }
+  if (!subjudul_nama && aktivitasData.subjudul_id) {
+    const { data: subjudulData } = await supabaseAdmin
+      .from('subjudul').select('nama').eq('id', aktivitasData.subjudul_id).single();
+    subjudul_nama = subjudulData?.nama || '';
+  }
+
   // Use admin client directly for consistent behavior
   const { data, error } = await supabaseAdmin
     .from('aktivitas')
-    .insert([aktivitasData])
+    .insert([{ ...aktivitasData, judul_nama, subjudul_nama }])
     .select(`
       *,
       users(id, nama, username, jabatan, role, minimal_poin),
@@ -828,7 +845,12 @@ export const getAllNotulensi = async (userId?: string): Promise<Notulensi[]> => 
   }
   const { data, error } = await query;
   if (error) throw error;
-  return data || [];
+  // Fallback ke snapshot nama jika judul/subjudul sudah dihapus
+  return (data || []).map((item: any) => ({
+    ...item,
+    judul: item.judul || (item.judul_nama ? { id: null, nama: item.judul_nama } : null),
+    subjudul: item.subjudul || (item.subjudul_nama ? { id: null, nama: item.subjudul_nama } : null)
+  }));
 };
 
 export const getNotulensiById = async (id: string): Promise<Notulensi | null> => {
@@ -838,14 +860,35 @@ export const getNotulensiById = async (id: string): Promise<Notulensi | null> =>
     .eq('id', id)
     .single();
   if (error) throw error;
-  return data;
+  if (!data) return null;
+  // Fallback ke snapshot nama jika judul/subjudul sudah dihapus
+  return {
+    ...data,
+    judul: data.judul || (data.judul_nama ? { id: null, nama: data.judul_nama } : null),
+    subjudul: data.subjudul || (data.subjudul_nama ? { id: null, nama: data.subjudul_nama } : null)
+  };
 };
 
 export const createNotulensi = async (notulensi: Omit<Notulensi, 'id' | 'created_at' | 'updated_at' | 'user' | 'judul' | 'subjudul' | 'pihak'>, pihak: Omit<NotulensiPihak, 'id' | 'notulensi_id' | 'created_at'>[], userId: string): Promise<Notulensi> => {
-  // Insert notulensi dengan created_by
+  // Fetch nama judul & subjudul untuk disimpan sebagai snapshot
+  let judul_nama = notulensi.judul_nama;
+  let subjudul_nama = notulensi.subjudul_nama;
+
+  if (!judul_nama && notulensi.judul_id) {
+    const { data: judulData } = await supabaseAdmin
+      .from('judul').select('nama').eq('id', notulensi.judul_id).single();
+    judul_nama = judulData?.nama || '';
+  }
+  if (!subjudul_nama && notulensi.subjudul_id) {
+    const { data: subjudulData } = await supabaseAdmin
+      .from('subjudul').select('nama').eq('id', notulensi.subjudul_id).single();
+    subjudul_nama = subjudulData?.nama || '';
+  }
+
+  // Insert notulensi dengan created_by dan snapshot nama
   const { data: nData, error: nError } = await supabase
     .from('notulensi')
-    .insert([{ ...notulensi, created_by: userId }])
+    .insert([{ ...notulensi, created_by: userId, judul_nama, subjudul_nama }])
     .select()
     .single();
   if (nError) throw nError;

@@ -7,8 +7,8 @@ export const exportUserActivities = (user: User, activities: Aktivitas[], filena
     'Tanggal': format(new Date(activity.tanggal), 'dd/MM/yyyy'),
     'Nama Karyawan': user.nama,
     'Jabatan': user.jabatan,
-    'Judul': activity.judul?.nama || '',
-    'Sub Judul': activity.subjudul?.nama || '',
+    'Judul': activity.judul?.nama || activity.judul_nama || '',
+    'Sub Judul': activity.subjudul?.nama || activity.subjudul_nama || '',
     'Aktivitas': activity.aktivitas,
     'Deskripsi': activity.deskripsi || '',
     'Poin': activity.poin || 0
@@ -16,7 +16,7 @@ export const exportUserActivities = (user: User, activities: Aktivitas[], filena
 
   const worksheet = XLSX.utils.json_to_sheet(worksheetData);
   const workbook = XLSX.utils.book_new();
-  
+
   // Set column widths
   const colWidths = [
     { wch: 12 }, // Tanggal
@@ -31,7 +31,7 @@ export const exportUserActivities = (user: User, activities: Aktivitas[], filena
   worksheet['!cols'] = colWidths;
 
   XLSX.utils.book_append_sheet(workbook, worksheet, user.nama);
-  
+
   const fileName = filename || `Aktivitas_${user.nama.replace(/\s+/g, '_')}_${format(new Date(), 'yyyy-MM-dd')}.xlsx`;
   XLSX.writeFile(workbook, fileName);
 };
@@ -44,15 +44,15 @@ export const exportAllActivities = (usersWithActivities: { user: User; activitie
       'Tanggal': format(new Date(activity.tanggal), 'dd/MM/yyyy'),
       'Nama Karyawan': user.nama,
       'Jabatan': user.jabatan,
-      'Judul': activity.judul?.nama || '',
-      'Sub Judul': activity.subjudul?.nama || '',
+      'Judul': activity.judul?.nama || activity.judul_nama || '',
+      'Sub Judul': activity.subjudul?.nama || activity.subjudul_nama || '',
       'Aktivitas': activity.aktivitas,
       'Deskripsi': activity.deskripsi || '',
       'Poin': activity.poin || 0
     }));
 
     const worksheet = XLSX.utils.json_to_sheet(worksheetData);
-    
+
     // Set column widths
     const colWidths = [
       { wch: 12 }, // Tanggal

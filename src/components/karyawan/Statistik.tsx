@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { 
-  ChartBarIcon, 
+import {
+  ChartBarIcon,
   ArrowLeftIcon,
   TrophyIcon,
   CalendarIcon,
@@ -35,17 +35,17 @@ export const Statistik: React.FC = () => {
   useEffect(() => {
     if (user) {
       loadAktivitas();
-      
+
       // Subscribe to realtime changes for aktivitas table
       const subscription = subscribeToTable('aktivitas', (payload) => {
         console.log('Realtime aktivitas change for stats:', payload);
-        
+
         // Only reload if the change affects current user
         if (payload.new?.user_id === user.id || payload.old?.user_id === user.id) {
           loadAktivitas();
         }
       });
-      
+
       return () => {
         unsubscribeFromTable('aktivitas');
       };
@@ -54,20 +54,20 @@ export const Statistik: React.FC = () => {
 
   const loadAktivitas = async () => {
     if (!user) return;
-    
+
     setLoading(true);
     try {
       console.log('Loading stats for user:', user.id, 'filter:', filter);
-      
+
       // Load activities
       const data = await getAktivitasByUser(user.id, filter.month, filter.year);
       console.log('Activities loaded for stats:', data.length, 'items');
       setAktivitas(data);
-      
+
       // Load monthly settings
       const settings = await getMonthlyUserSettings(filter.month, filter.year);
       setMonthlySettings(settings);
-      
+
     } catch (error) {
       console.error('Error loading aktivitas:', error);
     } finally {
@@ -102,7 +102,7 @@ export const Statistik: React.FC = () => {
       const itemMonth = new Date(item.tanggal).getMonth() + 1;
       return itemMonth === month;
     });
-    
+
     return {
       month: new Date(2025, i).toLocaleDateString('id-ID', { month: 'short' }),
       count: monthActivities.length,
@@ -112,11 +112,11 @@ export const Statistik: React.FC = () => {
   });
 
   // Top performing activities
-  const topActivities = monthlySettings.can_view_poin 
+  const topActivities = monthlySettings.can_view_poin
     ? aktivitas
-        .filter(item => item.poin && item.poin >= 80)
-        .sort((a, b) => (b.poin || 0) - (a.poin || 0))
-        .slice(0, 5)
+      .filter(item => item.poin && item.poin >= 80)
+      .sort((a, b) => (b.poin || 0) - (a.poin || 0))
+      .slice(0, 5)
     : [];
 
   const getPoinStatus = () => {
@@ -170,7 +170,7 @@ export const Statistik: React.FC = () => {
                 <div className="text-cyan-200 text-sm sm:text-lg font-medium opacity-80">Lihat ringkasan dan poin aktivitas Anda</div>
               </div>
             </div>
-            
+
             <div className="flex space-x-4">
               <select
                 value={filter.month}
@@ -223,7 +223,7 @@ export const Statistik: React.FC = () => {
               </div>
               <div>
                 <div className="text-2xl font-bold text-blue-400">{aktivitas.length}</div>
-                <div className="text-sm text-gray-400">Total Aktivitas Bulan {new Date(filter.year, filter.month-1).toLocaleDateString('id-ID', { month: 'long' })}</div>
+                <div className="text-sm text-gray-400">Total Aktivitas Bulan {new Date(filter.year, filter.month - 1).toLocaleDateString('id-ID', { month: 'long' })}</div>
               </div>
             </div>
           </Card>
@@ -234,7 +234,7 @@ export const Statistik: React.FC = () => {
               </div>
               <div>
                 <div className="text-2xl font-bold text-green-400">{monthlySettings.can_view_poin ? totalPoin : '-'}</div>
-                <div className="text-sm text-gray-400">Total Poin Bulan {new Date(filter.year, filter.month-1).toLocaleDateString('id-ID', { month: 'long' })}</div>
+                <div className="text-sm text-gray-400">Total Poin Bulan {new Date(filter.year, filter.month - 1).toLocaleDateString('id-ID', { month: 'long' })}</div>
               </div>
             </div>
           </Card>
@@ -253,9 +253,8 @@ export const Statistik: React.FC = () => {
                 {monthlyStats.map((stat, index) => (
                   <div key={stat.month} className="flex items-center justify-between">
                     <div className="flex items-center space-x-3">
-                      <div className={`w-8 h-8 rounded-lg flex items-center justify-center text-xs font-medium text-white ${
-                        index + 1 === filter.month ? 'bg-gradient-to-br from-cyan-500 to-blue-600' : 'bg-gradient-to-br from-gray-600 to-gray-700'
-                      }`}>
+                      <div className={`w-8 h-8 rounded-lg flex items-center justify-center text-xs font-medium text-white ${index + 1 === filter.month ? 'bg-gradient-to-br from-cyan-500 to-blue-600' : 'bg-gradient-to-br from-gray-600 to-gray-700'
+                        }`}>
                         {stat.month}
                       </div>
                       <span className="text-gray-300">{stat.count} aktivitas</span>
@@ -267,7 +266,7 @@ export const Statistik: React.FC = () => {
                           <div className="text-xs text-gray-400">Avg: {stat.average.toFixed(1)}</div>
                         </div>
                         <div className="w-20 h-2 bg-gray-700 rounded-full overflow-hidden">
-                          <div 
+                          <div
                             className="h-full bg-gradient-to-r from-cyan-500 to-blue-600 transition-all duration-500"
                             style={{ width: `${Math.min((stat.count / Math.max(...monthlyStats.map(s => s.count))) * 100, 100)}%` }}
                           />
@@ -280,7 +279,7 @@ export const Statistik: React.FC = () => {
                           <div className="text-xs text-gray-500">Tidak diizinkan</div>
                         </div>
                         <div className="w-20 h-2 bg-gray-700 rounded-full overflow-hidden">
-                          <div 
+                          <div
                             className="h-full bg-gradient-to-r from-gray-600 to-gray-700 transition-all duration-500"
                             style={{ width: `${Math.min((stat.count / Math.max(...monthlyStats.map(s => s.count))) * 100, 100)}%` }}
                           />
@@ -307,12 +306,11 @@ export const Statistik: React.FC = () => {
                 <div className="space-y-4">
                   {topActivities.map((activity, index) => (
                     <div key={activity.id} className="flex items-start space-x-3">
-                      <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold text-white ${
-                        index === 0 ? 'bg-gradient-to-br from-yellow-400 to-orange-500' :
-                        index === 1 ? 'bg-gradient-to-br from-gray-300 to-gray-500' :
-                        index === 2 ? 'bg-gradient-to-br from-orange-400 to-red-500' :
-                        'bg-gradient-to-br from-cyan-500 to-blue-600'
-                      }`}>
+                      <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold text-white ${index === 0 ? 'bg-gradient-to-br from-yellow-400 to-orange-500' :
+                          index === 1 ? 'bg-gradient-to-br from-gray-300 to-gray-500' :
+                            index === 2 ? 'bg-gradient-to-br from-orange-400 to-red-500' :
+                              'bg-gradient-to-br from-cyan-500 to-blue-600'
+                        }`}>
                         {index + 1}
                       </div>
                       <div className="flex-1">
@@ -329,7 +327,7 @@ export const Statistik: React.FC = () => {
                           <CalendarIcon className="w-3 h-3" />
                           <span>{new Date(activity.tanggal).toLocaleDateString('id-ID')}</span>
                           <span>•</span>
-                          <span>{activity.judul?.nama}</span>
+                          <span>{activity.judul?.nama || activity.judul_nama || '(Dihapus)'}</span>
                         </div>
                       </div>
                     </div>
@@ -359,7 +357,7 @@ export const Statistik: React.FC = () => {
                             <CalendarIcon className="w-3 h-3" />
                             <span>{new Date(activity.tanggal).toLocaleDateString('id-ID')}</span>
                             <span className="text-gray-500">•</span>
-                            <span className="truncate max-w-[120px]">{activity.judul?.nama}</span>
+                            <span className="truncate max-w-[120px]">{activity.judul?.nama || activity.judul_nama || '(Dihapus)'}</span>
                           </div>
                         </div>
                       </div>
@@ -394,21 +392,21 @@ export const Statistik: React.FC = () => {
                       {totalPoin >= minimalPoin ? 'Target Tercapai' : 'Perlu Peningkatan'}
                     </div>
                   </div>
-                  
+
                   <div className="text-center">
                     <div className="text-3xl font-bold text-cyan-400 mb-2">
                       {Math.max(...monthlyStats.map(s => s.count))}
                     </div>
                     <p className="text-gray-400">Aktivitas Terbanyak/Bulan</p>
                   </div>
-                  
+
                   <div className="text-center">
                     <div className="text-3xl font-bold text-purple-400 mb-2">
                       {minimalPoin}
                     </div>
                     <p className="text-gray-400">Target Minimal Poin</p>
                   </div>
-                  
+
                   <div className="text-center">
                     <div className={`text-3xl font-bold mb-2 ${poinStatus.color}`}>
                       {totalPoin >= minimalPoin ? Math.round(((totalPoin - minimalPoin) / minimalPoin) * 100) : Math.round((totalPoin / minimalPoin) * 100)}%

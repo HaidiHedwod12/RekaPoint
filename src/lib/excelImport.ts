@@ -297,8 +297,8 @@ export const exportActivitiesToExcel = (aktivitasList: any[], filename?: string)
       'No.': no,
       'Nama': aktivitas.user?.nama || aktivitas.nama_karyawan || '',
       'Tanggal': dayOnly.toString(),
-      'Tipe': aktivitas.judul?.nama || '',
-      'Project': aktivitas.subjudul?.nama || '',
+      'Tipe': aktivitas.judul?.nama || aktivitas.judul_nama || '',
+      'Project': aktivitas.subjudul?.nama || aktivitas.subjudul_nama || '',
       'Aktivitas': aktivitas.aktivitas || ''
     };
   });

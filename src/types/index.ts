@@ -29,6 +29,8 @@ export interface Aktivitas {
   tanggal: string;
   judul_id: string;
   subjudul_id: string;
+  judul_nama?: string;
+  subjudul_nama?: string;
   aktivitas: string;
   deskripsi?: string;
   poin?: number;
@@ -50,6 +52,8 @@ export interface Notulensi {
   user_id: string;
   judul_id: string;
   subjudul_id: string;
+  judul_nama?: string;
+  subjudul_nama?: string;
   sesi: string;
   tanggal: string; // ISO date
   tempat: string;

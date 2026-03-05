@@ -325,9 +325,9 @@ export const HistoriAktivitas: React.FC = () => {
                           </span>
                         </div>
                         <div className="flex items-center space-x-4 mt-1">
-                          <span className="text-sm text-cyan-300">{item.judul?.nama}</span>
+                          <span className="text-sm text-cyan-300">{item.judul?.nama || item.judul_nama || '(Dihapus)'}</span>
                           <span className="text-sm text-gray-400">•</span>
-                          <span className="text-sm text-blue-300">{item.subjudul?.nama}</span>
+                          <span className="text-sm text-blue-300">{item.subjudul?.nama || item.subjudul_nama || '(Dihapus)'}</span>
                         </div>
                       </div>
                     </div>

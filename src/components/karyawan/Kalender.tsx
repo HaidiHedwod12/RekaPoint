@@ -176,6 +176,8 @@ export const Kalender: React.FC = () => {
         user_id: user.id,
         judul_id: activity.judul_id,
         subjudul_id: activity.subjudul_id,
+        judul_nama: activity.judul?.nama || activity.judul_nama,
+        subjudul_nama: activity.subjudul?.nama || activity.subjudul_nama,
         aktivitas: activity.aktivitas,
         deskripsi: activity.deskripsi || '',
         tanggal: activity.tanggal, // Gunakan tanggal asli
@@ -331,10 +333,10 @@ export const Kalender: React.FC = () => {
                         whileTap={{ scale: 0.95 }}
                         onClick={() => setSelectedDate(day)}
                         className={`h-16 rounded-lg border transition-all duration-200 relative ${isSelected
-                            ? 'border-cyan-400 bg-cyan-500/20'
-                            : dayActivities.length > 0
-                              ? getDayColor(dayActivities)
-                              : 'border-gray-700/50 hover:border-gray-600/50'
+                          ? 'border-cyan-400 bg-cyan-500/20'
+                          : dayActivities.length > 0
+                            ? getDayColor(dayActivities)
+                            : 'border-gray-700/50 hover:border-gray-600/50'
                           } ${isToday ? 'ring-2 ring-cyan-400/50' : ''}`}
                       >
                         <div className="flex flex-col items-center justify-center h-full">
@@ -378,8 +380,8 @@ export const Kalender: React.FC = () => {
                           <div key={activity.id} className="glass-effect rounded-lg p-4 border border-gray-700/50">
                             <div className="flex items-start justify-between mb-3">
                               <div className="flex-1">
-                                <h4 className="font-medium text-white mb-1">{activity.judul?.nama}</h4>
-                                <p className="text-sm text-cyan-300">{activity.subjudul?.nama}</p>
+                                <h4 className="font-medium text-white mb-1">{activity.judul?.nama || activity.judul_nama || '(Dihapus)'}</h4>
+                                <p className="text-sm text-cyan-300">{activity.subjudul?.nama || activity.subjudul_nama || '(Dihapus)'}</p>
                               </div>
                               {/* Action Buttons */}
                               <div className="flex gap-1">

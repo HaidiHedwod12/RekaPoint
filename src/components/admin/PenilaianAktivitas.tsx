@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { 
-  ClipboardDocumentListIcon, 
+import {
+  ClipboardDocumentListIcon,
   ArrowLeftIcon,
   StarIcon,
   UserIcon,
@@ -33,13 +33,13 @@ export const PenilaianAktivitas: React.FC = () => {
   useEffect(() => {
     loadAktivitas();
     loadUsers();
-    
+
     // Subscribe to realtime changes for aktivitas table
     const subscription = subscribeToTable('aktivitas', (payload) => {
       console.log('Realtime aktivitas change:', payload);
       loadAktivitas(); // Reload aktivitas when changes occur
     });
-    
+
     return () => {
       unsubscribeFromTable('aktivitas');
     };
@@ -61,7 +61,7 @@ export const PenilaianAktivitas: React.FC = () => {
       const data = await getAllAktivitas(filter.month, filter.year);
       console.log('Admin aktivitas loaded:', data.length, 'items');
       setAllAktivitas(data);
-      
+
       // Filter by user if selected
       if (filter.userId) {
         const filteredData = data.filter(item => item.user_id === filter.userId);
@@ -84,7 +84,7 @@ export const PenilaianAktivitas: React.FC = () => {
       await updateAktivitasPoin(id, poin);
       console.log('Poin updated successfully');
       // Update local state instead of reloading
-      setAktivitas(prev => prev.map(item => 
+      setAktivitas(prev => prev.map(item =>
         item.id === id ? { ...item, poin } : item
       ));
     } catch (error) {
@@ -100,7 +100,7 @@ export const PenilaianAktivitas: React.FC = () => {
     const poin = parseInt(value) || 0;
     if (poin >= 0 && poin <= 100) {
       // Update local state immediately for responsive UI
-      setAktivitas(prev => prev.map(item => 
+      setAktivitas(prev => prev.map(item =>
         item.id === id ? { ...item, poin } : item
       ));
     }
@@ -168,7 +168,7 @@ export const PenilaianAktivitas: React.FC = () => {
                 <p className="text-gray-400 mt-1 text-sm sm:text-base">Nilai aktivitas harian karyawan</p>
               </div>
             </div>
-            
+
             <div className="flex flex-col sm:flex-row gap-2 sm:gap-4 w-full sm:w-auto">
               <select
                 value={filter.month}
@@ -235,10 +235,10 @@ export const PenilaianAktivitas: React.FC = () => {
 
                     <div className="space-y-3">
                       <div>
-                        <p className="text-sm text-gray-400">Judul: {item.judul?.nama}</p>
-                        <p className="text-sm text-gray-400">Sub Judul: {item.subjudul?.nama}</p>
+                        <p className="text-sm text-gray-400">Judul: {item.judul?.nama || item.judul_nama || '(Dihapus)'}</p>
+                        <p className="text-sm text-gray-400">Sub Judul: {item.subjudul?.nama || item.subjudul_nama || '(Dihapus)'}</p>
                       </div>
-                      
+
                       <div>
                         <h4 className="font-medium text-white mb-2">Aktivitas:</h4>
                         <p className="text-gray-300">{item.aktivitas}</p>
@@ -329,7 +329,7 @@ export const PenilaianAktivitas: React.FC = () => {
           >
             <DocumentTextIcon className="w-16 h-16 text-gray-500 mx-auto mb-4" />
             <p className="text-gray-400">
-              {filter.userId 
+              {filter.userId
                 ? `Tidak ada aktivitas untuk karyawan yang dipilih pada periode ini`
                 : `Tidak ada aktivitas untuk periode yang dipilih`
               }
