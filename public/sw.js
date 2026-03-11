@@ -3,7 +3,8 @@ const ASSETS_TO_CACHE = [
     '/',
     '/index.html',
     '/manifest.json',
-    '/Rekadwipa.png',
+    '/icon-192.png',
+    '/icon-512.png',
     '/src/main.tsx',
     '/src/index.css'
 ];
