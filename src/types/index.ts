@@ -5,8 +5,7 @@ export interface User {
   password_hash?: string;
   jabatan: string;
   role: 'admin' | 'karyawan';
-  minimal_poin: number;
-  can_view_poin: boolean;
+
   created_at: string;
 }
 
@@ -33,7 +32,7 @@ export interface Aktivitas {
   subjudul_nama?: string;
   aktivitas: string;
   deskripsi?: string;
-  poin?: number;
+
   created_at: string;
   updated_at: string;
   // Relations

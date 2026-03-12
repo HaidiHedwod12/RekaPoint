@@ -78,8 +78,8 @@ export const AdminDashboard: React.FC = () => {
       onClick: () => navigate('/admin/reimbursement')
     },
     {
-      title: 'Penilaian Aktivitas',
-      description: 'Nilai aktivitas harian karyawan',
+      title: 'Daftar Aktivitas',
+      description: 'Lihat seluruh aktivitas harian karyawan',
       icon: ClipboardDocumentListIcon,
       iconBg: 'from-green-500 to-teal-600',
       onClick: () => navigate('/admin/penilaian')

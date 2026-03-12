@@ -427,7 +427,7 @@ export const getAktivitasByUser = async (userId: string, month?: number, year?: 
     .from('aktivitas')
     .select(`
       *,
-      users(id, nama, username, jabatan, role, minimal_poin),
+      users(id, nama, username, jabatan, role),
       judul(id, nama),
       subjudul(id, nama)
     `)
@@ -471,7 +471,7 @@ export const getAllAktivitas = async (month?: number, year?: number): Promise<Ak
     .from('aktivitas')
     .select(`
       *,
-      users(id, nama, username, jabatan, role, minimal_poin),
+      users(id, nama, username, jabatan, role),
       judul(id, nama),
       subjudul(id, nama)
     `)
@@ -530,7 +530,7 @@ export const createAktivitas = async (aktivitasData: Omit<Aktivitas, 'id' | 'cre
     .insert([{ ...aktivitasData, judul_nama, subjudul_nama }])
     .select(`
       *,
-      users(id, nama, username, jabatan, role, minimal_poin),
+      users(id, nama, username, jabatan, role),
       judul(id, nama),
       subjudul(id, nama)
     `)
@@ -560,7 +560,7 @@ export const updateAktivitas = async (id: string, aktivitasData: Partial<Aktivit
     .eq('id', id)
     .select(`
       *,
-      users(id, nama, username, jabatan, role, minimal_poin),
+      users(id, nama, username, jabatan, role),
       judul(id, nama),
       subjudul(id, nama)
     `)
@@ -597,237 +597,7 @@ export const deleteAktivitas = async (id: string): Promise<void> => {
   console.log('Aktivitas deleted successfully');
 };
 
-export const updateAktivitasPoin = async (id: string, poin: number): Promise<Aktivitas> => {
-  console.log('Updating aktivitas poin:', id, poin);
 
-  const { data, error } = await supabaseAdmin
-    .from('aktivitas')
-    .update({ poin })
-    .eq('id', id)
-    .select(`
-      *,
-      users(id, nama, username, jabatan, role, minimal_poin),
-      judul(id, nama),
-      subjudul(id, nama)
-    `)
-    .single();
-
-  if (error) {
-    console.error('Error updating aktivitas poin:', error);
-    throw error;
-  }
-
-  console.log('Aktivitas poin updated successfully:', data);
-  // Transform the data to match our expected structure
-  return {
-    ...data,
-    user: data.users,
-    judul: data.judul,
-    subjudul: data.subjudul
-  };
-};
-
-// Monthly Settings management
-export interface MonthlySettings {
-  id: string;
-  user_id: string;
-  month: number;
-  year: number;
-  minimal_poin: number;
-  can_view_poin: boolean;
-  created_at: string;
-  updated_at: string;
-}
-
-export const getMonthlySettings = async (userId: string, month: number, year: number): Promise<{ minimal_poin: number; can_view_poin: boolean }> => {
-  console.log('Getting monthly settings for user:', userId, 'month:', month, 'year:', year);
-
-  try {
-    // First try to get monthly settings
-    const { data: monthlyData, error: monthlyError } = await supabaseAdmin
-      .from('monthly_settings')
-      .select('*')
-      .eq('user_id', userId)
-      .eq('month', month)
-      .eq('year', year)
-      .maybeSingle();
-
-    if (monthlyError) {
-      console.error('Error getting monthly settings:', monthlyError);
-    }
-
-    if (monthlyData) {
-      console.log('Found monthly settings:', monthlyData);
-      return {
-        minimal_poin: monthlyData.minimal_poin,
-        can_view_poin: monthlyData.can_view_poin
-      };
-    }
-
-    // Jika tidak ada monthly settings, return default: minimal_poin = 0, can_view_poin = false
-    return {
-      minimal_poin: 0,
-      can_view_poin: false
-    };
-  } catch (error) {
-    console.error('Error in getMonthlySettings:', error);
-    return { minimal_poin: 0, can_view_poin: false };
-  }
-};
-
-export const getAllMonthlySettings = async (month: number, year: number): Promise<MonthlySettings[]> => {
-  console.log('Getting all monthly settings for month:', month, 'year:', year);
-
-  const { data, error } = await supabaseAdmin
-    .from('monthly_settings')
-    .select('*')
-    .eq('month', month)
-    .eq('year', year);
-
-  if (error) {
-    console.error('Error getting all monthly settings:', error);
-    throw error;
-  }
-
-  console.log('All monthly settings retrieved:', data?.length);
-  return data || [];
-};
-
-export const upsertMonthlySettings = async (
-  userId: string,
-  month: number,
-  year: number,
-  minimalPoin?: number,
-  canViewPoin?: boolean
-): Promise<any> => {
-  console.log('=== UPSERT MONTHLY SETTINGS START ===');
-  console.log('Input params:', { userId, month, year, minimalPoin, canViewPoin });
-
-  try {
-    // First check if record exists
-    const { data: existing, error: checkError } = await supabaseAdmin
-      .from('monthly_settings')
-      .select('*')
-      .eq('user_id', userId)
-      .eq('month', month)
-      .eq('year', year)
-      .maybeSingle();
-
-    if (checkError) {
-      console.error('Error checking existing monthly settings:', checkError);
-      throw checkError;
-    }
-
-    console.log('Existing record:', existing);
-
-    // Get user defaults for fallback
-    const { data: userData, error: userError } = await supabaseAdmin
-      .from('users')
-      .select('minimal_poin, can_view_poin')
-      .eq('id', userId)
-      .single();
-
-    if (userError) {
-      console.error('Error getting user data:', userError);
-      throw userError;
-    }
-
-    console.log('User defaults:', userData);
-
-    const userDefaults = {
-      minimal_poin: userData?.minimal_poin || 150,
-      can_view_poin: userData?.can_view_poin || false
-    };
-
-    if (existing) {
-      // Update existing record
-      const updateData: any = {};
-
-      if (minimalPoin !== undefined) {
-        updateData.minimal_poin = minimalPoin;
-      }
-
-      if (canViewPoin !== undefined) {
-        updateData.can_view_poin = canViewPoin;
-      }
-
-      console.log('Updating existing record with:', updateData);
-
-      const { data, error } = await supabaseAdmin
-        .from('monthly_settings')
-        .update(updateData)
-        .eq('user_id', userId)
-        .eq('month', month)
-        .eq('year', year)
-        .select()
-        .single();
-
-      if (error) {
-        console.error('Error updating monthly settings:', error);
-        throw error;
-      }
-
-      console.log('=== UPDATE SUCCESS ===', data);
-      return data;
-    } else {
-      // Insert new record
-      const insertData = {
-        user_id: userId,
-        month,
-        year,
-        minimal_poin: minimalPoin !== undefined ? minimalPoin : userDefaults.minimal_poin,
-        can_view_poin: canViewPoin !== undefined ? canViewPoin : userDefaults.can_view_poin
-      };
-
-      console.log('Inserting new record:', insertData);
-
-      const { data, error } = await supabaseAdmin
-        .from('monthly_settings')
-        .insert([insertData])
-        .select()
-        .single();
-
-      if (error) {
-        console.error('Error inserting monthly settings:', error);
-        throw error;
-      }
-
-      console.log('=== INSERT SUCCESS ===', data);
-      return data;
-    }
-
-  } catch (error) {
-    console.error('=== UPSERT ERROR ===', error);
-    throw error;
-  } finally {
-    console.log('=== UPSERT MONTHLY SETTINGS END ===');
-  }
-};
-
-export const getUserWithMonthlySettings = async (userId: string, month: number, year: number): Promise<User & { monthly_minimal_poin: number; monthly_can_view_poin: boolean }> => {
-  console.log('Getting user with monthly settings:', userId, month, year);
-
-  // Get user data
-  const { data: userData, error: userError } = await supabaseAdmin
-    .from('users')
-    .select('*')
-    .eq('id', userId)
-    .single();
-
-  if (userError) {
-    console.error('Error getting user:', userError);
-    throw userError;
-  }
-
-  // Get monthly settings
-  const monthlySettings = await getMonthlySettings(userId, month, year);
-
-  return {
-    ...userData,
-    monthly_minimal_poin: monthlySettings.minimal_poin,
-    monthly_can_view_poin: monthlySettings.can_view_poin
-  };
-};
 
 // =====================
 // NOTULENSI MANAGEMENT

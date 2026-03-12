@@ -17,16 +17,13 @@ import { MenuCard } from './MenuCard';
 import { useAuth } from '../../contexts/AuthContext';
 import { getAktivitasByUser } from '../../lib/database';
 import { subscribeToTable, unsubscribeFromTable } from '../../lib/database';
-import { getMonthlySettings } from '../../lib/database';
+
 
 export const KaryawanDashboard: React.FC = () => {
-  const { user, getMonthlyUserSettings } = useAuth();
+  const { user } = useAuth();
   const navigate = useNavigate();
   const [stats, setStats] = useState({
-    totalActivities: 0,
-    totalPoin: 0,
-    minimalPoin: 150,
-    canViewPoin: false
+    totalActivities: 0
   });
   const [filter, setFilter] = useState({
     month: new Date().getMonth() + 1,
@@ -38,7 +35,7 @@ export const KaryawanDashboard: React.FC = () => {
       loadStats();
       
       // Subscribe to realtime changes for aktivitas table
-      const subscription = subscribeToTable('aktivitas', (payload) => {
+      subscribeToTable('aktivitas', (payload) => {
         console.log('Realtime aktivitas change for dashboard:', payload);
         
         // Only reload if the change affects current user
@@ -53,6 +50,29 @@ export const KaryawanDashboard: React.FC = () => {
     }
   }, [user, filter]);
 
+  const getPerformanceLabel = (total: number) => {
+    const now = new Date();
+    const isCurrentMonth = filter.year === now.getFullYear() && filter.month === (now.getMonth() + 1);
+    const isPastMonth = filter.year < now.getFullYear() || (filter.year === now.getFullYear() && filter.month < (now.getMonth() + 1));
+    
+    let divisor = 1;
+    if (isCurrentMonth) {
+      divisor = now.getDate();
+    } else if (isPastMonth) {
+      divisor = new Date(filter.year, filter.month, 0).getDate();
+    } else {
+      divisor = 1;
+    }
+
+    const average = total / divisor;
+
+    if (total === 0) return { label: 'Belum Ada Aktivitas', color: 'text-red-400', bg: 'bg-red-500/20', average };
+    if (average >= 3) return { label: 'Sangat Aktif', color: 'text-green-400', bg: 'bg-green-500/20', average };
+    if (average >= 2) return { label: 'Aktif', color: 'text-cyan-400', bg: 'bg-cyan-500/20', average };
+    if (average >= 1) return { label: 'Cukup Aktif', color: 'text-yellow-400', bg: 'bg-yellow-500/20', average };
+    return { label: 'Perlu Ditingkatkan', color: 'text-orange-400', bg: 'bg-orange-500/20', average };
+  };
+
   const loadStats = async () => {
     if (!user) return;
     
@@ -61,16 +81,8 @@ export const KaryawanDashboard: React.FC = () => {
       // Load activities
       const activities = await getAktivitasByUser(user.id, filter.month, filter.year);
       console.log('Dashboard activities loaded:', activities.length, 'items');
-      const totalPoin = activities.reduce((sum, act) => sum + (act.poin || 0), 0);
-      
-      // Load monthly settings
-      const monthlySettings = await getMonthlyUserSettings(filter.month, filter.year);
-      
       setStats({
-        totalActivities: activities.length,
-        totalPoin,
-        minimalPoin: monthlySettings.minimal_poin,
-        canViewPoin: monthlySettings.can_view_poin
+        totalActivities: activities.length
       });
     } catch (error) {
       console.error('Error loading stats:', error);
@@ -78,23 +90,7 @@ export const KaryawanDashboard: React.FC = () => {
     }
   };
 
-  const getPoinStatus = () => {
-    if (stats.totalPoin >= stats.minimalPoin) {
-      return {
-        color: 'text-green-400',
-        bgColor: 'bg-green-500/20 border-green-500/50',
-        status: 'Tercapai'
-      };
-    } else {
-      return {
-        color: 'text-red-400',
-        bgColor: 'bg-red-500/20 border-red-500/50',
-        status: 'Kurang'
-      };
-    }
-  };
 
-  const poinStatus = getPoinStatus();
 
   const menuItems = [
     {
@@ -120,7 +116,7 @@ export const KaryawanDashboard: React.FC = () => {
     },
     {
       title: 'Statistik',
-      description: 'Lihat ringkasan dan poin aktivitas',
+      description: 'Lihat ringkasan aktivitas Anda',
       icon: ChartBarIcon,
       iconBg: 'from-orange-500 to-red-600',
       onClick: () => navigate('/karyawan/statistik')
@@ -225,43 +221,22 @@ export const KaryawanDashboard: React.FC = () => {
               </select>
             </div>
             <div className="flex flex-col sm:flex-row justify-center space-y-2 sm:space-y-0 sm:space-x-4">
-              <div className="glass-effect px-4 py-2 rounded-lg border border-green-500/20 hover:border-green-400/50 transition-all duration-300">
-                <div className="text-lg font-bold text-green-400">{stats.totalActivities}</div>
-                <div className="text-xs text-gray-400">Aktivitas</div>
+              <div className="glass-effect px-6 py-3 rounded-xl border border-green-500/30 hover:border-green-400/50 transition-all duration-300">
+                <div className="text-3xl font-extrabold text-green-400">{stats.totalActivities}</div>
+                <div className="text-sm font-medium text-gray-400">Total Aktivitas Tercatat</div>
+                {(() => {
+                  const perf = getPerformanceLabel(stats.totalActivities);
+                  return (
+                    <div className="mt-2 text-xs">
+                      <span className={`px-2 py-0.5 rounded-full border border-current font-medium ${perf.color} ${perf.bg}`}>
+                        Status: {perf.label} ({perf.average.toFixed(1)}/hari)
+                      </span>
+                    </div>
+                  );
+                })()}
+                <div className="text-[10px] text-cyan-200/60 mt-2 uppercase tracking-wider font-medium">{new Date(filter.year, filter.month - 1).toLocaleDateString('id-ID', { month: 'long', year: 'numeric' })}</div>
               </div>
-              {stats.canViewPoin ? (
-                <>
-                  <div className={`glass-effect px-4 py-2 rounded-lg border transition-all duration-300 ${poinStatus.bgColor}`}>
-                    <div className={`text-lg font-bold ${poinStatus.color}`}>{stats.totalPoin}/{stats.minimalPoin}</div>
-                    <div className="text-xs text-gray-400">Total Poin</div>
-                  </div>
-                  <div className={`glass-effect px-4 py-2 rounded-lg border transition-all duration-300 ${poinStatus.bgColor}`}>
-                    <div className={`text-lg font-bold ${poinStatus.color}`}>{poinStatus.status}</div>
-                    <div className="text-xs text-gray-400">Status</div>
-                  </div>
-                </>
-              ) : (
-                <>
-                  <div className="glass-effect px-4 py-2 rounded-lg border border-gray-600/50 transition-all duration-300">
-                    <div className="text-lg font-bold text-gray-400">-</div>
-                    <div className="text-xs text-gray-400">Total Poin</div>
-                    <div className="text-xs text-gray-500">Belum diizinkan</div>
-                  </div>
-                  <div className="glass-effect px-4 py-2 rounded-lg border border-gray-600/50 transition-all duration-300">
-                    <div className="text-lg font-bold text-gray-400">-</div>
-                    <div className="text-xs text-gray-400">Status</div>
-                    <div className="text-xs text-gray-500">Belum diizinkan</div>
-                  </div>
-                </>
-              )}
             </div>
-            {!stats.canViewPoin && (
-              <div className="mt-2 sm:mt-4 glass-effect px-4 py-2 rounded-lg border border-yellow-500/20 bg-yellow-500/5">
-                <p className="text-xs text-yellow-300 text-center">
-                  💡 Poin belum dapat dilihat untuk bulan ini. Hubungi admin untuk mendapatkan izin melihat poin.
-                </p>
-              </div>
-            )}
           </motion.div>
         </motion.div>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-8">
@@ -297,9 +272,6 @@ export const KaryawanDashboard: React.FC = () => {
               ) : (
                 <>
                   <p>Total {stats.totalActivities} aktivitas tercatat</p>
-                  {stats.canViewPoin && (
-                    <p className="text-xs sm:text-sm mt-1 sm:mt-2">Poin: {stats.totalPoin}/{stats.minimalPoin}</p>
-                  )}
                 </>
               )}
             </div>

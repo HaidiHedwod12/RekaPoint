@@ -1,16 +1,13 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { User, AuthUser } from '../types';
+import { User } from '../types';
 import { getCurrentUser, login as authLogin, logout as authLogout } from '../lib/auth';
-import { supabase, enableRealtime } from '../lib/supabase';
-import { unsubscribeAll } from '../lib/database';
-import { getMonthlySettings } from '../lib/database';
+import { supabase } from '../lib/supabase';
 
 interface AuthContextType {
   user: User | null;
   login: (username: string, password: string) => Promise<void>;
   logout: () => void;
   loading: boolean;
-  getMonthlyUserSettings: (month: number, year: number) => Promise<{ minimal_poin: number; can_view_poin: boolean }>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -72,21 +69,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     sessionStorage.removeItem('app_session_active');
   };
 
-  const getMonthlyUserSettings = async (month: number, year: number) => {
-    if (!user) {
-      return { minimal_poin: 150, can_view_poin: false };
-    }
-    
-    try {
-      return await getMonthlySettings(user.id, month, year);
-    } catch (error) {
-      console.error('Error getting monthly settings:', error);
-      return { minimal_poin: user.minimal_poin || 150, can_view_poin: user.can_view_poin || false };
-    }
-  };
+
 
   return (
-    <AuthContext.Provider value={{ user, login, logout, loading, getMonthlyUserSettings }}>
+    <AuthContext.Provider value={{ user, login, logout, loading }}>
       {children}
     </AuthContext.Provider>
   );

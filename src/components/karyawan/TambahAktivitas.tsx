@@ -168,13 +168,23 @@ export const TambahAktivitas: React.FC = () => {
         >
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 sm:gap-0 mb-6">
             <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 sm:gap-4">
-              <button
-                onClick={() => navigate('/dashboard')}
-                className="flex items-center gap-2 px-5 py-2 rounded-xl glass-effect border border-cyan-400/30 text-cyan-200 font-semibold shadow-md hover:bg-cyan-700/20 hover:text-white transition w-full sm:w-auto"
-              >
-                <ArrowLeftIcon className="w-5 h-5" />
-                Kembali
-              </button>
+              <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
+                <button
+                  onClick={() => navigate(location.state?.returnUrl || '/dashboard')}
+                  className="flex items-center justify-center gap-2 px-5 py-2 rounded-xl glass-effect border border-cyan-400/30 text-cyan-200 font-semibold shadow-md hover:bg-cyan-700/20 hover:text-white transition w-full sm:w-auto"
+                >
+                  <ArrowLeftIcon className="w-5 h-5" />
+                  Kembali
+                </button>
+                {location.state?.returnUrl && location.state.returnUrl !== '/dashboard' && (
+                  <button
+                    onClick={() => navigate('/dashboard')}
+                    className="flex items-center justify-center gap-2 px-5 py-2 rounded-xl glass-effect border border-gray-500/30 text-gray-300 font-semibold shadow-md hover:bg-gray-700/20 hover:text-white transition w-full sm:w-auto"
+                  >
+                    Home
+                  </button>
+                )}
+              </div>
               <div>
                 <h1 className="text-2xl sm:text-4xl font-extrabold bg-gradient-to-r from-cyan-400 to-blue-400 bg-clip-text text-transparent mb-1 drop-shadow-lg">Tambah Aktivitas</h1>
                 <div className="text-cyan-200 text-sm sm:text-lg font-medium opacity-80">Catat aktivitas harian Anda</div>
@@ -299,11 +309,21 @@ export const TambahAktivitas: React.FC = () => {
                 <Button
                   type="button"
                   variant="outline"
-                  onClick={() => navigate('/dashboard')}
-                  className="border-gray-500/50 text-gray-300"
+                  onClick={() => navigate(location.state?.returnUrl || '/dashboard')}
+                  className="border-gray-500/50 text-gray-300 flex-1 sm:flex-none"
                 >
                   Batal
                 </Button>
+                {location.state?.returnUrl && location.state.returnUrl !== '/dashboard' && (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => navigate('/dashboard')}
+                    className="border-cyan-500/30 text-cyan-300 flex-1 sm:flex-none hidden sm:flex"
+                  >
+                    Home
+                  </Button>
+                )}
               </div>
             </form>
           </Card>

@@ -5,21 +5,19 @@ import {
   ArrowLeftIcon,
   CalendarIcon,
   DocumentTextIcon,
-  StarIcon,
   PencilIcon,
   TrashIcon,
   DocumentDuplicateIcon,
-  DocumentIcon,
   DocumentArrowDownIcon
 } from '@heroicons/react/24/outline';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '../ui/Button';
 import { Card } from '../ui/Card';
 import { useAuth } from '../../contexts/AuthContext';
-import { getAktivitasByUser, deleteAktivitas, updateAktivitas, createAktivitas } from '../../lib/database';
+import { getAktivitasByUser, deleteAktivitas, updateAktivitas, createAktivitas, getAllJudul, getSubJudulByJudul } from '../../lib/database';
 import { exportActivitiesToExcel } from '../../lib/excelImport';
 import { subscribeToTable, unsubscribeFromTable } from '../../lib/database';
-import { Aktivitas } from '../../types';
+import { Aktivitas, Judul, SubJudul } from '../../types';
 import { format } from 'date-fns';
 
 export const HistoriAktivitas: React.FC = () => {
@@ -34,13 +32,45 @@ export const HistoriAktivitas: React.FC = () => {
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [editItem, setEditItem] = useState<Aktivitas | null>(null);
   const [editForm, setEditForm] = useState<any>({});
+  const [juduls, setJuduls] = useState<Judul[]>([]);
+  const [subjuduls, setSubjuduls] = useState<SubJudul[]>([]);
+
+  useEffect(() => {
+    loadJuduls();
+  }, []);
+
+  const loadJuduls = async () => {
+    try {
+      const data = await getAllJudul();
+      setJuduls(data);
+    } catch (error) {
+      console.error('Error loading juduls:', error);
+    }
+  };
+
+  useEffect(() => {
+    if (editForm.judul_id) {
+      loadSubjuduls(editForm.judul_id);
+    } else {
+      setSubjuduls([]);
+    }
+  }, [editForm.judul_id]);
+
+  const loadSubjuduls = async (judulId: string) => {
+    try {
+      const data = await getSubJudulByJudul(judulId);
+      setSubjuduls(data);
+    } catch (error) {
+      console.error('Error loading subjuduls:', error);
+    }
+  };
 
   useEffect(() => {
     if (user) {
       loadAktivitas();
 
       // Subscribe to realtime changes for aktivitas table
-      const subscription = subscribeToTable('aktivitas', (payload) => {
+      subscribeToTable('aktivitas', (payload) => {
         console.log('Realtime aktivitas change:', payload);
 
         // Only reload if the change affects current user
@@ -125,7 +155,6 @@ export const HistoriAktivitas: React.FC = () => {
         aktivitas: item.aktivitas,
         deskripsi: item.deskripsi || '',
         tanggal: item.tanggal, // Gunakan tanggal asli
-        poin: item.poin || 0
       };
 
       // Panggil fungsi create aktivitas
@@ -150,19 +179,7 @@ export const HistoriAktivitas: React.FC = () => {
     exportActivitiesToExcel(aktivitas, filename);
   };
 
-  const getPoinColor = (poin: number) => {
-    if (poin >= 80) return 'text-green-400';
-    if (poin >= 60) return 'text-yellow-400';
-    if (poin >= 40) return 'text-orange-400';
-    return 'text-red-400';
-  };
 
-  const getPoinBadge = (poin: number) => {
-    if (poin >= 80) return 'bg-green-500/20 text-green-300 border-green-500/30';
-    if (poin >= 60) return 'bg-yellow-500/20 text-yellow-300 border-yellow-500/30';
-    if (poin >= 40) return 'bg-orange-500/20 text-orange-300 border-orange-500/30';
-    return 'bg-red-500/20 text-red-300 border-red-500/30';
-  };
 
   if (loading) {
     return (
@@ -236,33 +253,16 @@ export const HistoriAktivitas: React.FC = () => {
           </div>
         </motion.div>
 
-        {/* Summary Stats */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.2 }}
-          className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8"
+          className="flex justify-center mb-8"
         >
-          <div className="glass-effect border border-cyan-500/20 rounded-xl p-4 text-center">
-            <div className="text-2xl font-bold text-cyan-400">{aktivitas.length}</div>
-            <div className="text-sm text-gray-400">Total Aktivitas</div>
+          <div className="glass-effect border border-cyan-500/20 rounded-xl px-8 py-4 text-center min-w-[200px]">
+            <div className="text-3xl font-extrabold text-cyan-400">{aktivitas.length}</div>
+            <div className="text-sm font-medium text-gray-400">Total Aktivitas Tercatat</div>
           </div>
-
-          {/* Only show total poin if user has permission */}
-          {user?.can_view_poin ? (
-            <div className="glass-effect border border-green-500/20 rounded-xl p-4 text-center">
-              <div className="text-2xl font-bold text-green-400">
-                {aktivitas.reduce((sum, item) => sum + (item.poin || 0), 0)}
-              </div>
-              <div className="text-sm text-gray-400">Total Poin</div>
-            </div>
-          ) : (
-            <div className="glass-effect border border-gray-600/50 rounded-xl p-4 text-center">
-              <div className="text-2xl font-bold text-gray-400">-</div>
-              <div className="text-sm text-gray-400">Total Poin</div>
-              <div className="text-xs text-gray-500 mt-1">Belum diizinkan</div>
-            </div>
-          )}
         </motion.div>
 
         {/* Bulk actions */}
@@ -397,7 +397,7 @@ export const HistoriAktivitas: React.FC = () => {
             <DocumentTextIcon className="w-16 h-16 text-gray-500 mx-auto mb-4" />
             <p className="text-gray-400">Tidak ada aktivitas untuk periode yang dipilih</p>
             <Button
-              onClick={() => navigate('/karyawan/tambah')}
+              onClick={() => navigate('/karyawan/tambah', { state: { returnUrl: '/karyawan/histori' } })}
               className="mt-4 bg-gradient-to-r from-green-500 to-teal-600"
             >
               Tambah Aktivitas Pertama
@@ -417,6 +417,29 @@ export const HistoriAktivitas: React.FC = () => {
                 value={editForm.tanggal?.slice(0, 10) || ''}
                 onChange={e => setEditForm({ ...editForm, tanggal: e.target.value })}
               />
+              <label className="block text-sm text-gray-300">Judul</label>
+              <select
+                className="w-full px-3 py-2 rounded bg-slate-700 text-white"
+                value={editForm.judul_id || ''}
+                onChange={e => setEditForm({ ...editForm, judul_id: e.target.value, subjudul_id: '' })}
+              >
+                <option value="">Pilih Judul</option>
+                {juduls.map(j => (
+                  <option key={j.id} value={j.id}>{j.nama}</option>
+                ))}
+              </select>
+              <label className="block text-sm text-gray-300">Sub Judul</label>
+              <select
+                className="w-full px-3 py-2 rounded bg-slate-700 text-white"
+                value={editForm.subjudul_id || ''}
+                onChange={e => setEditForm({ ...editForm, subjudul_id: e.target.value })}
+                disabled={!editForm.judul_id}
+              >
+                <option value="">Pilih Sub Judul</option>
+                {subjuduls.map(s => (
+                  <option key={s.id} value={s.id}>{s.nama}</option>
+                ))}
+              </select>
               <label className="block text-sm text-gray-300">Aktivitas</label>
               <input type="text" className="w-full px-3 py-2 rounded bg-slate-700 text-white"
                 value={editForm.aktivitas || ''}
@@ -427,7 +450,6 @@ export const HistoriAktivitas: React.FC = () => {
                 value={editForm.deskripsi || ''}
                 onChange={e => setEditForm({ ...editForm, deskripsi: e.target.value })}
               />
-              {/* TODO: Tambahkan dropdown judul/subjudul jika perlu */}
             </div>
             <div className="flex gap-2 mt-6 justify-end">
               <Button variant="outline" onClick={() => setEditItem(null)} className="text-gray-300">Batal</Button>

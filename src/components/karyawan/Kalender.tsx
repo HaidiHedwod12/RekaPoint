@@ -5,7 +5,6 @@ import {
   ArrowLeftIcon,
   ChevronLeftIcon,
   ChevronRightIcon,
-  StarIcon,
   DocumentTextIcon,
   PencilIcon,
   DocumentDuplicateIcon,
@@ -16,10 +15,10 @@ import { useNavigate } from 'react-router-dom';
 import { Button } from '../ui/Button';
 import { Card } from '../ui/Card';
 import { useAuth } from '../../contexts/AuthContext';
-import { getAktivitasByUser } from '../../lib/database';
+import { getAktivitasByUser, getAllJudul, getSubJudulByJudul } from '../../lib/database';
 import { exportActivitiesToExcel } from '../../lib/excelImport';
 import { subscribeToTable, unsubscribeFromTable } from '../../lib/database';
-import { Aktivitas } from '../../types';
+import { Aktivitas, Judul, SubJudul } from '../../types';
 
 export const Kalender: React.FC = () => {
   const navigate = useNavigate();
@@ -34,7 +33,7 @@ export const Kalender: React.FC = () => {
       loadAktivitas();
 
       // Subscribe to realtime changes for aktivitas table
-      const subscription = subscribeToTable('aktivitas', (payload) => {
+      subscribeToTable('aktivitas', (payload) => {
         console.log('Realtime aktivitas change for calendar:', payload);
 
         // Only reload if the change affects current user
@@ -114,31 +113,64 @@ export const Kalender: React.FC = () => {
     setSelectedDate(null);
   };
 
-  const getDayColor = (activities: Aktivitas[]) => {
-    if (activities.length === 0) return '';
-
-    const avgPoin = activities.reduce((sum, act) => sum + (act.poin || 0), 0) / activities.length;
-
-    if (avgPoin >= 80) return 'bg-green-500/20 border-green-500/50';
-    if (avgPoin >= 60) return 'bg-yellow-500/20 border-yellow-500/50';
-    if (avgPoin >= 40) return 'bg-orange-500/20 border-orange-500/50';
-    return 'bg-red-500/20 border-red-500/50';
+  const getDayColor = (dayActivities: Aktivitas[]) => {
+    if (dayActivities.length === 0) return '';
+    if (dayActivities.length >= 3) return 'bg-cyan-500/30 border-cyan-400/50';
+    if (dayActivities.length >= 1) return 'bg-cyan-500/10 border-cyan-700/30';
+    return '';
   };
 
   // State for edit modal
   const [editItem, setEditItem] = useState<Aktivitas | null>(null);
-  const [editForm, setEditForm] = useState({
+  const [editForm, setEditForm] = useState<any>({
     tanggal: '',
     aktivitas: '',
-    deskripsi: ''
+    deskripsi: '',
+    judul_id: '',
+    subjudul_id: ''
   });
+  const [juduls, setJuduls] = useState<Judul[]>([]);
+  const [subjuduls, setSubjuduls] = useState<SubJudul[]>([]);
+
+  useEffect(() => {
+    loadJuduls();
+  }, []);
+
+  const loadJuduls = async () => {
+    try {
+      const data = await getAllJudul();
+      setJuduls(data);
+    } catch (error) {
+      console.error('Error loading juduls:', error);
+    }
+  };
+
+  useEffect(() => {
+    if (editForm.judul_id) {
+      loadSubjuduls(editForm.judul_id);
+    } else {
+      setSubjuduls([]);
+    }
+  }, [editForm.judul_id]);
+
+  const loadSubjuduls = async (judulId: string) => {
+    try {
+      const data = await getSubJudulByJudul(judulId);
+      setSubjuduls(data);
+    } catch (error) {
+      console.error('Error loading subjuduls:', error);
+    }
+  };
+
 
   const handleEdit = (activity: Aktivitas) => {
     setEditItem(activity);
     setEditForm({
       tanggal: activity.tanggal,
       aktivitas: activity.aktivitas,
-      deskripsi: activity.deskripsi || ''
+      deskripsi: activity.deskripsi || '',
+      judul_id: activity.judul_id,
+      subjudul_id: activity.subjudul_id
     });
   };
 
@@ -152,7 +184,9 @@ export const Kalender: React.FC = () => {
       await updateAktivitas(editItem.id, {
         tanggal: editForm.tanggal,
         aktivitas: editForm.aktivitas,
-        deskripsi: editForm.deskripsi
+        deskripsi: editForm.deskripsi,
+        judul_id: editForm.judul_id,
+        subjudul_id: editForm.subjudul_id
       });
 
       await loadAktivitas();
@@ -181,7 +215,6 @@ export const Kalender: React.FC = () => {
         aktivitas: activity.aktivitas,
         deskripsi: activity.deskripsi || '',
         tanggal: activity.tanggal, // Gunakan tanggal asli
-        poin: activity.poin || 0
       };
 
       await createAktivitas(duplicateData);
@@ -435,7 +468,7 @@ export const Kalender: React.FC = () => {
                             const month = String(selectedDate.getMonth() + 1).padStart(2, '0');
                             const day = String(selectedDate.getDate()).padStart(2, '0');
                             const dateString = `${year}-${month}-${day}`;
-                            navigate('/karyawan/tambah', { state: { selectedDate: dateString } });
+                            navigate('/karyawan/tambah', { state: { selectedDate: dateString, returnUrl: '/karyawan/kalender' } });
                           }
                         }}
                         className="bg-gradient-to-r from-green-500 to-teal-600"
@@ -462,12 +495,6 @@ export const Kalender: React.FC = () => {
                     <span className="text-cyan-400 font-medium">{aktivitas.length}</span>
                   </div>
                   <div className="flex justify-between items-center">
-                    <span className="text-gray-400">Total Poin</span>
-                    <span className={`font-medium ${user?.can_view_poin ? 'text-green-400' : 'text-gray-500'}`}>
-                      {user?.can_view_poin ? aktivitas.reduce((sum, act) => sum + (act.poin || 0), 0) : '-'}
-                    </span>
-                  </div>
-                  <div className="flex justify-between items-center">
                     <span className="text-gray-400">Hari Aktif</span>
                     <span className="text-purple-400 font-medium">
                       {new Set(aktivitas.map(act => new Date(act.tanggal).toDateString())).size}
@@ -491,6 +518,29 @@ export const Kalender: React.FC = () => {
                 value={editForm.tanggal?.slice(0, 10) || ''}
                 onChange={e => setEditForm({ ...editForm, tanggal: e.target.value })}
               />
+              <label className="block text-sm text-gray-300">Judul</label>
+              <select
+                className="w-full px-3 py-2 rounded bg-slate-700 text-white"
+                value={editForm.judul_id || ''}
+                onChange={e => setEditForm({ ...editForm, judul_id: e.target.value, subjudul_id: '' })}
+              >
+                <option value="">Pilih Judul</option>
+                {juduls.map(j => (
+                  <option key={j.id} value={j.id}>{j.nama}</option>
+                ))}
+              </select>
+              <label className="block text-sm text-gray-300">Sub Judul</label>
+              <select
+                className="w-full px-3 py-2 rounded bg-slate-700 text-white"
+                value={editForm.subjudul_id || ''}
+                onChange={e => setEditForm({ ...editForm, subjudul_id: e.target.value })}
+                disabled={!editForm.judul_id}
+              >
+                <option value="">Pilih Sub Judul</option>
+                {subjuduls.map(s => (
+                  <option key={s.id} value={s.id}>{s.nama}</option>
+                ))}
+              </select>
               <label className="block text-sm text-gray-300">Aktivitas</label>
               <input type="text" className="w-full px-3 py-2 rounded bg-slate-700 text-white"
                 value={editForm.aktivitas || ''}

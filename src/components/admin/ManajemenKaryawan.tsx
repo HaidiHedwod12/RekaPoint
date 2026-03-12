@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { 
   UsersIcon, 
@@ -8,30 +8,19 @@ import {
   ArrowLeftIcon,
   UserIcon,
   BriefcaseIcon,
-  KeyIcon,
-  DocumentArrowUpIcon,
-  DocumentArrowDownIcon,
-  ChartBarIcon,
-  StarIcon,
-  CalendarIcon
+  KeyIcon
 } from '@heroicons/react/24/outline';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '../ui/Button';
 import { Input } from '../ui/Input';
 import { Card } from '../ui/Card';
-import { getAllUsers, createUser, updateUser, deleteUser, getAktivitasByUser } from '../../lib/database';
+import { getAllUsers, deleteUser, getAktivitasByUser } from '../../lib/database';
 import { createUserAsAdmin, updateUserAsAdmin } from '../../lib/database';
 import { subscribeToTable, unsubscribeFromTable } from '../../lib/database';
-import { getMonthlySettings, upsertMonthlySettings, getAllMonthlySettings } from '../../lib/database';
-import { uploadUserDocument, getUserDocuments, deleteUserDocument, downloadDocument, UserDocument } from '../../lib/fileUpload';
-import { User, Aktivitas } from '../../types';
+import { User } from '../../types';
 
 interface UserWithStats extends User {
   totalActivities?: number;
-  totalPoin?: number;
-  minimalPoin?: number;
-  monthlyMinimalPoin?: number;
-  monthlyCanViewPoin?: boolean;
 }
 
 let loadUsersTimeout: ReturnType<typeof setTimeout> | null = null;
@@ -42,12 +31,8 @@ export const ManajemenKaryawan: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [editingUser, setEditingUser] = useState<User | null>(null);
-  const [selectedUser, setSelectedUser] = useState<string | null>(null);
-  const [userStats, setUserStats] = useState<{ [key: string]: { activities: number; poin: number } }>({});
-  const [monthlyMinimalPoinForm, setMonthlyMinimalPoinForm] = useState<{ [key: string]: number }>({});
-  const [monthlyCanViewPoinForm, setMonthlyCanViewPoinForm] = useState<{ [key: string]: boolean }>({});
-  const [monthlySettingsLoaded, setMonthlySettingsLoaded] = useState(false);
-  const [updatingSettings, setUpdatingSettings] = useState<{ [key: string]: 'minimal_poin' | 'can_view_poin' | null }>({});
+
+  const [userStats, setUserStats] = useState<{ [key: string]: { activities: number } }>({});
   const [statsFilter, setStatsFilter] = useState({
     month: new Date().getMonth() + 1,
     year: new Date().getFullYear()
@@ -59,9 +44,7 @@ export const ManajemenKaryawan: React.FC = () => {
     username: '',
     password_hash: '',
     jabatan: '',
-    role: 'karyawan' as 'admin' | 'karyawan',
-    minimal_poin: 150,
-    can_view_poin: false
+    role: 'karyawan' as 'admin' | 'karyawan'
   });
   const [showPassword, setShowPassword] = useState(false);
 
@@ -69,13 +52,13 @@ export const ManajemenKaryawan: React.FC = () => {
     loadUsers();
     
     // Subscribe to realtime changes for users table
-    const subscription = subscribeToTable('users', (payload) => {
-      // Debounce reload
-      if (loadUsersTimeout) clearTimeout(loadUsersTimeout);
-      loadUsersTimeout = setTimeout(() => {
-        loadUsers();
-      }, 500); // reload max 2x per detik
-    });
+      subscribeToTable('users', () => {
+        // Debounce reload
+        if (loadUsersTimeout) clearTimeout(loadUsersTimeout);
+        loadUsersTimeout = setTimeout(() => {
+          loadUsers();
+        }, 500); // reload max 2x per detik
+      });
     
     return () => {
       unsubscribeFromTable('users');
@@ -84,12 +67,9 @@ export const ManajemenKaryawan: React.FC = () => {
   }, []);
 
   useEffect(() => {
-    // Kosongkan data stats dan form saat filter berubah
+    // Kosongkan data stats saat filter berubah
     setUserStats({});
-    setMonthlyMinimalPoinForm({});
-    setMonthlyCanViewPoinForm({});
-    setMonthlySettingsLoaded(false);
-    loadUserStatsAndMonthlySettings();
+    loadUserStats();
   }, [users, statsFilter]);
 
   const loadUsers = async () => {
@@ -106,12 +86,9 @@ export const ManajemenKaryawan: React.FC = () => {
     }
   };
 
-  const loadUserStatsAndMonthlySettings = async () => {
-    if (users.length === 0) return; // Don't load if no users yet
-    setMonthlySettingsLoaded(false);
-    const stats: { [key: string]: { activities: number; poin: number } } = {};
-    const newMonthlyMinimalPoin: { [key: string]: number } = {};
-    const newMonthlyCanViewPoin: { [key: string]: boolean } = {};
+  const loadUserStats = async () => {
+    if (users.length === 0) return; 
+    const stats: { [key: string]: { activities: number } } = {};
 
     // Fetch data paralel untuk semua user
     await Promise.all(users.map(async (user) => {
@@ -119,23 +96,14 @@ export const ManajemenKaryawan: React.FC = () => {
         try {
           const activities = await getAktivitasByUser(user.id, statsFilter.month, statsFilter.year);
           stats[user.id] = {
-            activities: activities.length,
-            poin: activities.reduce((sum, act) => sum + (act.poin || 0), 0)
+            activities: activities.length
           };
-          const monthlySettings = await getMonthlySettings(user.id, statsFilter.month, statsFilter.year);
-          newMonthlyMinimalPoin[user.id] = monthlySettings.minimal_poin;
-          newMonthlyCanViewPoin[user.id] = monthlySettings.can_view_poin;
         } catch (error) {
-          stats[user.id] = { activities: 0, poin: 0 };
-          newMonthlyMinimalPoin[user.id] = user.minimal_poin || 150;
-          newMonthlyCanViewPoin[user.id] = user.can_view_poin || false;
+          stats[user.id] = { activities: 0 };
         }
       }
     }));
     setUserStats(stats);
-    setMonthlyMinimalPoinForm(newMonthlyMinimalPoin);
-    setMonthlyCanViewPoinForm(newMonthlyCanViewPoin);
-    setMonthlySettingsLoaded(true);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -149,9 +117,7 @@ export const ManajemenKaryawan: React.FC = () => {
           nama: formData.nama,
           username: formData.username,
           jabatan: formData.jabatan,
-          role: formData.role,
-          minimal_poin: formData.minimal_poin,
-          can_view_poin: formData.can_view_poin
+          role: formData.role
         };
         
         if (formData.password_hash) {
@@ -159,22 +125,7 @@ export const ManajemenKaryawan: React.FC = () => {
         }
         
         // Update user data
-        const updatedUser = await updateUserAsAdmin(editingUser.id, updateData);
-        
-        // Update monthly settings for current filter period
-        try {
-          await upsertMonthlySettings(
-            editingUser.id,
-            statsFilter.month,
-            statsFilter.year,
-            formData.minimal_poin,
-            formData.can_view_poin
-          );
-          console.log('Monthly settings updated for current period');
-        } catch (monthlyError) {
-          console.error('Error updating monthly settings:', monthlyError);
-          // Continue anyway - user update was successful
-        }
+        await updateUserAsAdmin(editingUser.id, updateData);
         
         // Update local state immediately for smooth UI
         setUsers(prev => prev.map(user => 
@@ -183,39 +134,12 @@ export const ManajemenKaryawan: React.FC = () => {
             : user
         ));
         
-        // Update monthly settings state immediately
-        setMonthlyMinimalPoinForm(prev => ({
-          ...prev,
-          [editingUser.id]: formData.minimal_poin
-        }));
-        
-        setMonthlyCanViewPoinForm(prev => ({
-          ...prev,
-          [editingUser.id]: formData.can_view_poin
-        }));
-        
         alert('Karyawan berhasil diupdate!');
       } else {
         console.log('Creating new user');
-        const newUser = await createUserAsAdmin({
-          ...formData,
-          minimal_poin: formData.minimal_poin,
-          can_view_poin: formData.can_view_poin
+        await createUserAsAdmin({
+          ...formData
         });
-        
-        // Create monthly settings for new user
-        try {
-          await upsertMonthlySettings(
-            newUser.id,
-            statsFilter.month,
-            statsFilter.year,
-            formData.minimal_poin,
-            formData.can_view_poin
-          );
-          console.log('Monthly settings created for new user');
-        } catch (monthlyError) {
-          console.error('Error creating monthly settings for new user:', monthlyError);
-        }
         
         alert('Karyawan berhasil ditambahkan!');
       }
@@ -251,9 +175,7 @@ export const ManajemenKaryawan: React.FC = () => {
       username: user.username,
       password_hash: user.password_hash || '',
       jabatan: user.jabatan,
-      role: user.role,
-      minimal_poin: user.minimal_poin || 150,
-      can_view_poin: user.can_view_poin || false
+      role: user.role
     });
     setShowForm(true);
   };
@@ -287,170 +209,29 @@ export const ManajemenKaryawan: React.FC = () => {
     }
   };
 
-  const handleUpdateMinimalPoin = async (userId: string) => {
-    // Check if user still exists
-    const userExists = users.find(u => u.id === userId);
-    if (!userExists) {
-      alert('User sudah dihapus. Silakan refresh halaman.');
-      loadUsers();
-      return;
-    }
-    
-    try {
-      console.log('Updating minimal poin for user:', userId, monthlyMinimalPoinForm[userId]);
-      await updateUserAsAdmin(userId, { minimal_poin: monthlyMinimalPoinForm[userId] });
-      
-      // Update local state instead of reloading
-      setUsers(prev => prev.map(user => 
-        user.id === userId 
-          ? { ...user, minimal_poin: monthlyMinimalPoinForm[userId] }
-          : user
-      ));
-      
-      // Trigger a broadcast to notify all clients about the user update
-      try {
-        // This part of the code was removed as per the new_code, as the broadcast logic was not provided in the new_code.
-        // If broadcast is still needed, it should be re-added here.
-      } catch (broadcastError) {
-        console.log('Could not broadcast minimal poin update:', broadcastError);
-      }
-      
-      // Show success feedback without alert
-      console.log('Minimal poin updated successfully');
-    } catch (error) {
-      console.error('Error updating minimal poin:', error);
-      alert('Gagal mengupdate minimal poin: ' + (error instanceof Error ? error.message : 'Unknown error'));
-    }
-  };
 
-  const handleUpdateMonthlyMinimalPoin = async (userId: string) => {
-    const user = users.find(u => u.id === userId);
-    if (!user) {
-      console.error('User not found:', userId);
-      return;
-    }
-    
-    const newValue = monthlyMinimalPoinForm[userId];
-    if (newValue === undefined || newValue < 0) {
-      console.error('Invalid minimal poin value:', newValue);
-      return;
-    }
-    
-    // Set updating state
-    setUpdatingSettings(prev => ({ ...prev, [userId]: 'minimal_poin' }));
-    
-    console.log('Updating monthly minimal poin for user:', {
-      userId,
-      userName: user.nama,
-      month: statsFilter.month,
-      year: statsFilter.year,
-      currentValue: monthlyMinimalPoinForm[userId],
-      newValue,
-      userDefault: user.minimal_poin
-    });
-    
-    try {
-      await upsertMonthlySettings(
-        userId, 
-        statsFilter.month, 
-        statsFilter.year, 
-        newValue, 
-        undefined
-      );
-      
-      console.log('Monthly minimal poin updated successfully for', user.nama);
-      
-      // Update local state immediately for smooth UI
-      setMonthlyMinimalPoinForm(prev => ({
-        ...prev,
-        [userId]: newValue
-      }));
-      
-      // Also update user's default minimal_poin if needed
-      try {
-        await updateUserAsAdmin(userId, { minimal_poin: newValue });
-        setUsers(prev => prev.map(u => 
-          u.id === userId ? { ...u, minimal_poin: newValue } : u
-        ));
-        console.log('User default minimal_poin also updated');
-      } catch (userUpdateError) {
-        console.log('Could not update user default minimal_poin:', userUpdateError);
-      }
-      
-      console.log(`Minimal poin bulanan untuk ${user.nama} berhasil diupdate ke ${newValue}!`);
-    } catch (error) {
-      console.error('Error updating monthly minimal poin:', error);
-      // Revert local state on error
-      setMonthlyMinimalPoinForm(prev => ({
-        ...prev,
-        [userId]: user.minimal_poin || 150
-      }));
-      alert('Gagal mengupdate minimal poin: ' + (error instanceof Error ? error.message : 'Unknown error'));
-    } finally {
-      setUpdatingSettings(prev => ({ ...prev, [userId]: null }));
-    }
-  };
 
-  const handleUpdateMonthlyCanViewPoin = async (userId: string) => {
-    const user = users.find(u => u.id === userId);
-    if (!user) {
-      console.error('User not found:', userId);
-      return;
+  const getPerformanceLabel = (total: number, month: number, year: number) => {
+    const now = new Date();
+    const isCurrentMonth = year === now.getFullYear() && month === (now.getMonth() + 1);
+    const isPastMonth = year < now.getFullYear() || (year === now.getFullYear() && month < (now.getMonth() + 1));
+    
+    let divisor = 1;
+    if (isCurrentMonth) {
+      divisor = now.getDate();
+    } else if (isPastMonth) {
+      divisor = new Date(year, month, 0).getDate();
+    } else {
+      divisor = 1;
     }
-    
-    // Set updating state
-    setUpdatingSettings(prev => ({ ...prev, [userId]: 'can_view_poin' }));
-    
-    const newValue = monthlyCanViewPoinForm[userId];
-    console.log('Updating monthly can view poin for user:', {
-      userId,
-      userName: user.nama,
-      month: statsFilter.month,
-      year: statsFilter.year,
-      currentValue: monthlyCanViewPoinForm[userId],
-      newValue
-    });
-    
-    try {
-      await upsertMonthlySettings(
-        userId, 
-        statsFilter.month, 
-        statsFilter.year, 
-        undefined, 
-        newValue
-      );
-      
-      console.log('Monthly can view poin updated successfully for', user.nama);
-      
-      // Update local state immediately for smooth UI
-      setMonthlyCanViewPoinForm(prev => ({
-        ...prev,
-        [userId]: newValue
-      }));
-      
-      // Also update user's default can_view_poin if needed
-      try {
-        await updateUserAsAdmin(userId, { can_view_poin: newValue });
-        setUsers(prev => prev.map(u => 
-          u.id === userId ? { ...u, can_view_poin: newValue } : u
-        ));
-        console.log('User default can_view_poin also updated');
-      } catch (userUpdateError) {
-        console.log('Could not update user default can_view_poin:', userUpdateError);
-      }
-      
-      console.log(`Izin melihat poin bulanan untuk ${user.nama} berhasil diupdate!`);
-    } catch (error) {
-      console.error('Error updating monthly can_view_poin:', error);
-      // Revert local state on error
-      setMonthlyCanViewPoinForm(prev => ({
-        ...prev,
-        [userId]: user.can_view_poin || false
-      }));
-      alert('Gagal mengupdate izin melihat poin: ' + (error instanceof Error ? error.message : 'Unknown error'));
-    } finally {
-      setUpdatingSettings(prev => ({ ...prev, [userId]: null }));
-    }
+
+    const average = total / divisor;
+
+    if (total === 0) return { label: 'Belum Ada', color: 'text-red-400', bg: 'bg-red-500/20' };
+    if (average >= 3) return { label: 'Sangat Aktif', color: 'text-green-400', bg: 'bg-green-500/20' };
+    if (average >= 2) return { label: 'Aktif', color: 'text-cyan-400', bg: 'bg-cyan-500/20' };
+    if (average >= 1) return { label: 'Cukup Aktif', color: 'text-yellow-400', bg: 'bg-yellow-500/20' };
+    return { label: 'Perlu Tingkatkan', color: 'text-orange-400', bg: 'bg-orange-500/20' };
   };
 
   const resetForm = () => {
@@ -459,9 +240,7 @@ export const ManajemenKaryawan: React.FC = () => {
       username: '',
       password_hash: '',
       jabatan: '',
-      role: 'karyawan',
-      minimal_poin: 150,
-      can_view_poin: false
+      role: 'karyawan'
     });
     setEditingUser(null);
     setShowForm(false);
@@ -469,35 +248,9 @@ export const ManajemenKaryawan: React.FC = () => {
     setSaving(false);
   };
 
-  const getPoinStatus = (currentPoin: number, monthlyMinimalPoin: number) => {
-    if (currentPoin >= monthlyMinimalPoin) {
-      return {
-        color: 'text-green-400',
-        bgColor: 'bg-green-500/20 border-green-500/50',
-        status: 'Tercapai'
-      };
-    } else {
-      return {
-        color: 'text-red-400',
-        bgColor: 'bg-red-500/20 border-red-500/50',
-        status: 'Kurang'
-      };
-    }
-  };
-
   // User Card Component
   const UserCard: React.FC<{ user: UserWithStats; index: number }> = ({ user, index }) => {
-    const stats = userStats[user.id] || { activities: 0, poin: 0 };
-    const monthlyMinimalPoin = monthlyMinimalPoinForm[user.id] || user.minimal_poin || 150;
-    const monthlyCanViewPoin = monthlyCanViewPoinForm[user.id] || false;
-    const poinStatus = getPoinStatus(stats.poin, monthlyMinimalPoin);
-    
-    console.log(`UserCard for ${user.nama}:`, {
-      monthlyMinimalPoinForm: monthlyMinimalPoinForm[user.id],
-      userMinimalPoin: user.minimal_poin,
-      finalMonthlyMinimalPoin: monthlyMinimalPoin,
-      statsFilter
-    });
+    const stats = userStats[user.id] || { activities: 0 };
     
     return (
       <motion.div
@@ -537,156 +290,25 @@ export const ManajemenKaryawan: React.FC = () => {
             
             {user.role === 'karyawan' && (
               <>
-                <div className="flex items-center justify-between text-sm">
-                  <span className="text-gray-400">Aktivitas:</span>
-                  <span className="text-cyan-400 font-medium">{stats.activities}</span>
-                </div>
-                
-                <div className="flex items-center justify-between text-sm">
-                  <span className="text-gray-400">Poin:</span>
-                  <span className={`font-bold ${poinStatus.color}`}>
-                    {stats.poin}/{monthlyMinimalPoin}
-                  </span>
-                </div>
-                
-                <div className={`px-3 py-1 rounded-full text-xs font-medium border ${poinStatus.bgColor}`}>
-                  {poinStatus.status}
-                </div>
-                
-                {/* Monthly Minimal Poin Setting */}
-                <div className="space-y-2 pt-2 border-t border-gray-700/50">
-                  <label className="text-xs text-gray-400">
-                    Minimal Poin ({new Date(statsFilter.year, statsFilter.month - 1).toLocaleDateString('id-ID', { month: 'short' })} {statsFilter.year}):
-                  </label>
-                  <div className="text-xs text-gray-500 mb-1">
-                    Current: {monthlyMinimalPoin} | Default: {user.minimal_poin || 150}
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <input
-                      type="number"
-                      min="0"
-                      max="1000"
-                      value={monthlyMinimalPoinForm[user.id] !== undefined ? monthlyMinimalPoinForm[user.id] : (user.minimal_poin || 150)}
-                      onChange={(e) => {
-                        // Hanya update state lokal, tidak trigger update ke server
-                        setMonthlyMinimalPoinForm({
-                          ...monthlyMinimalPoinForm,
-                          [user.id]: parseInt(e.target.value) || 0
-                        });
-                      }}
-                      disabled={!monthlySettingsLoaded}
-                      className="w-16 px-2 py-1 text-xs text-center glass-effect border border-gray-600/50 rounded text-white focus:outline-none focus:ring-1 focus:ring-cyan-400"
-                    />
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={async () => {
-                        if (updatingSettings[user.id] === 'minimal_poin') return;
-                        setUpdatingSettings(prev => ({ ...prev, [user.id]: 'minimal_poin' }));
-                        const oldValue = user.minimal_poin;
-                        const newValue = monthlyMinimalPoinForm[user.id];
-                        setUsers(prev => prev.map(u => u.id === user.id ? { ...u, minimal_poin: newValue } : u));
-                        try {
-                          await new Promise(res => setTimeout(res, 1000)); // debounce 1 detik
-                          await upsertMonthlySettings(
-                            user.id,
-                            statsFilter.month,
-                            statsFilter.year,
-                            newValue,
-                            undefined
-                          );
-                          await updateUserAsAdmin(user.id, { minimal_poin: newValue });
-                        } catch (error) {
-                          setUsers(prev => prev.map(u => u.id === user.id ? { ...u, minimal_poin: oldValue } : u));
-                          alert('Gagal update minimal poin: ' + (error instanceof Error ? error.message : 'Unknown error'));
-                        } finally {
-                          setUpdatingSettings(prev => ({ ...prev, [user.id]: null }));
-                        }
-                      }}
-                      disabled={!monthlySettingsLoaded || updatingSettings[user.id] === 'minimal_poin'}
-                      className="border-cyan-500/50 text-cyan-300 text-xs px-2 py-1"
-                    >
-                      {updatingSettings[user.id] === 'minimal_poin' ? (
-                        <div className="flex items-center">
-                          <div className="w-3 h-3 border border-cyan-400 border-t-transparent rounded-full animate-spin mr-1" />
-                          Saving
-                        </div>
-                      ) : (
-                        'Set'
-                      )}
-                    </Button>
-                  </div>
-                </div>
-                
-                {/* Monthly Izin Melihat Poin */}
-                <div className="space-y-2 pt-2 border-t border-gray-700/50">
-                  <label className="text-xs text-gray-400">
-                    Izin Melihat Poin ({new Date(statsFilter.year, statsFilter.month - 1).toLocaleDateString('id-ID', { month: 'short' })} {statsFilter.year}):
-                  </label>
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center space-x-2">
-                      <input
-                        type="checkbox"
-                        checked={monthlyCanViewPoinForm[user.id] !== undefined ? monthlyCanViewPoinForm[user.id] : (user.can_view_poin || false)}
-                        onChange={(e) => {
-                          // Hanya update state lokal, tidak trigger update ke server
-                          setMonthlyCanViewPoinForm({
-                            ...monthlyCanViewPoinForm,
-                            [user.id]: e.target.checked
-                          });
-                        }}
-                        disabled={!monthlySettingsLoaded}
-                        className="w-4 h-4 text-cyan-600 bg-gray-700 border-gray-600 rounded focus:ring-cyan-500"
-                      />
-                      <span className="text-xs text-gray-300">
-                        {(monthlyCanViewPoinForm[user.id] !== undefined ? monthlyCanViewPoinForm[user.id] : (user.can_view_poin || false)) ? 'Boleh melihat' : 'Tidak boleh melihat'}
-                      </span>
-                    </div>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={async () => {
-                        if (updatingSettings[user.id] === 'can_view_poin') return;
-                        setUpdatingSettings(prev => ({ ...prev, [user.id]: 'can_view_poin' }));
-                        const oldValue = user.can_view_poin;
-                        const newValue = monthlyCanViewPoinForm[user.id];
-                        setUsers(prev => prev.map(u => u.id === user.id ? { ...u, can_view_poin: newValue } : u));
-                        try {
-                          await new Promise(res => setTimeout(res, 1000)); // debounce 1 detik
-                          await upsertMonthlySettings(
-                            user.id,
-                            statsFilter.month,
-                            statsFilter.year,
-                            undefined,
-                            newValue
-                          );
-                          await updateUserAsAdmin(user.id, { can_view_poin: newValue });
-                        } catch (error) {
-                          setUsers(prev => prev.map(u => u.id === user.id ? { ...u, can_view_poin: oldValue } : u));
-                          alert('Gagal update izin melihat poin: ' + (error instanceof Error ? error.message : 'Unknown error'));
-                        } finally {
-                          setUpdatingSettings(prev => ({ ...prev, [user.id]: null }));
-                        }
-                      }}
-                      disabled={!monthlySettingsLoaded || updatingSettings[user.id] === 'can_view_poin'}
-                      className="border-cyan-500/50 text-cyan-300 text-xs px-2 py-1"
-                    >
-                      {updatingSettings[user.id] === 'can_view_poin' ? (
-                        <div className="flex items-center">
-                          <div className="w-3 h-3 border border-cyan-400 border-t-transparent rounded-full animate-spin mr-1" />
-                          Saving
-                        </div>
-                      ) : (
-                        'Set'
-                      )}
-                    </Button>
+                <div className="flex items-center justify-between text-sm py-2 border-y border-gray-700/50 mb-2">
+                  <span className="text-gray-400">Aktivitas Bulan Ini:</span>
+                  <div className="text-right">
+                    <div className="text-cyan-400 font-bold text-lg leading-tight">{stats.activities}</div>
+                    {(() => {
+                      const perf = getPerformanceLabel(stats.activities, statsFilter.month, statsFilter.year);
+                      return (
+                        <span className={`text-[10px] px-1.5 py-0.5 rounded-full border border-current font-medium ${perf.color} ${perf.bg}`}>
+                          {perf.label}
+                        </span>
+                      );
+                    })()}
                   </div>
                 </div>
               </>
             )}
             
             <div className="text-xs text-gray-500">
-              Bergabung: {new Date(user.created_at).toLocaleDateString('id-ID')}
+              Bergabung: {user.created_at ? new Date(user.created_at).toLocaleDateString('id-ID') : '-'}
             </div>
           </div>
           
@@ -722,15 +344,7 @@ export const ManajemenKaryawan: React.FC = () => {
     );
   }
 
-  // Skeleton untuk area data karyawan
-  if (!monthlySettingsLoaded) {
-    return (
-      <div className="min-h-screen py-8 flex flex-col items-center justify-center">
-        <div className="w-16 h-16 border-4 border-gray-600 border-t-cyan-400 rounded-full animate-spin mb-4" />
-        <div className="text-cyan-300">Memuat data karyawan untuk bulan {statsFilter.month}/{statsFilter.year}...</div>
-      </div>
-    );
-  }
+
 
   return (
     <div className="min-h-screen py-8 relative">
@@ -832,14 +446,7 @@ export const ManajemenKaryawan: React.FC = () => {
                     required
                     icon={<BriefcaseIcon className="w-5 h-5" />}
                   />
-                  <Input
-                    label="Minimal Poin per Bulan"
-                    type="number"
-                    value={formData.minimal_poin.toString()}
-                    onChange={(e) => setFormData({ ...formData, minimal_poin: parseInt(e.target.value) || 150 })}
-                    required
-                    icon={<StarIcon className="w-5 h-5" />}
-                  />
+
                   <div className="relative">
                     <Input
                       label={editingUser ? "Password Baru (kosongkan jika tidak diubah)" : "Password"}
@@ -859,25 +466,7 @@ export const ManajemenKaryawan: React.FC = () => {
                   </div>
                 </div>
                 
-                {/* Can View Poin Setting in Form */}
-                {formData.role === 'karyawan' && (
-                  <div>
-                    <label className="block text-sm font-medium text-gray-300 mb-2">
-                      Izin Melihat Poin
-                    </label>
-                    <div className="flex items-center space-x-2">
-                      <input
-                        type="checkbox"
-                        checked={formData.can_view_poin || false}
-                        onChange={(e) => setFormData({ ...formData, can_view_poin: e.target.checked })}
-                        className="w-4 h-4 text-cyan-600 bg-gray-700 border-gray-600 rounded focus:ring-cyan-500"
-                      />
-                      <span className="text-sm text-gray-300">
-                        Karyawan boleh melihat poin aktivitas
-                      </span>
-                    </div>
-                  </div>
-                )}
+
                 
                 <div>
                   <label className="block text-sm font-medium text-gray-300 mb-2">Role</label>
